@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Engineer Field Console &middot; MMA Industrial{% endblock %}
+
+{% block current_breadcrumb %}Field Operations{% endblock %}
+
+{% block content %}
+{% url 'assistant_chat' as assistant_chat_url %}
+{% url 'assistant_history' as assistant_history_url %}
+
+<div class="page-header">
+  <div class="page-header-title-block">
+    <h1 class="page-h1">Maintenance Engineering Terminal</h1>
+    <p class="page-subtitle">Equipment diagnostics, AI-assisted troubleshooting, and verified manual citations</p>
+  </div>
+  <div class="page-actions">
+    <a href="{{ assistant_chat_url|default:'/assistant/chat/' }}" class="btn btn-primary">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+      </svg>
+      Ask Maintenance Question
+    </a>
+  </div>
+</div>
+
+<!-- Operator Context Banner (Professional Industrial Welcome) -->
+<div class="panel" style="background-color: var(--surface); border-left: 3px solid var(--accent);">
+  <div class="panel-body" style="padding: var(--space-5);">
+    <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); flex-wrap: wrap;">
+      <div>
+        <div style="font-size: var(--fs-md); font-weight: 600; color: var(--text-main);">
+          Station Active &middot; Engineer {% firstof user.get_full_name user.username "Field Engineer" %}
+        </div>
+        <div style="font-size: var(--fs-base); color: var(--text-muted); margin-top: 4px;">
+          All AI answers are strictly grounded in technical PDF service documentation. Select a target machine to begin diagnostic inquiry.
+        </div>
+      </div>
+      <div style="display: flex; gap: var(--space-2); align-items: center;">
+        <span class="badge badge-indexed">
+          <span class="badge-dot"></span>
+          {{ active_machines_count|default:"0" }} Units Ready
+        </span>
+        <span class="badge badge-neutral">
+          Isolation Mode: Active
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Engineer Industrial KPI Strip -->
+<div class="kpi-strip" role="region" aria-label="Field Engineer Metrics" style="margin-bottom: var(--space-6);">
+  <div class="kpi-cell">
+    <span class="kpi-label">Active Machinery Fleet</span>
+    <div class="kpi-value-row">
+      <span class="kpi-value num">{{ active_machines_count|default:"0" }}</span>
+    </div>
+    <span class="kpi-subtext">Online equipment units</span>
+  </div>
+
+  <div class="kpi-cell">
+    <span class="kpi-label">My Technical Inquiries</span>
+    <div class="kpi-value-row">
+      <span class="kpi-value num">{{ my_questions_count|default:"0" }}</span>
+    </div>
+    <span class="kpi-subtext">Diagnostic queries logged</span>
+  </div>
+
+  <div class="kpi-cell">
+    <span class="kpi-label">Verified Answers</span>
+    <div class="kpi-value-row">
+      <span class="kpi-value num">{{ my_verified_answers|default:"0" }}</span>
+    </div>
+    <span class="kpi-subtext positive">Grounded in manual citations</span>
+  </div>
+
+  <div class="kpi-cell">
+    <span class="kpi-label">Ingested Manuals</span>
+    <div class="kpi-value-row">
+      <span class="kpi-value num">{{ available_manuals_count|default:"0" }}</span>
+    </div>
+    <span class="kpi-subtext positive">Vector search ready</span>
+  </div>
+</div>
+
+<!-- Machine Fleet Quick Launch Grid -->
+<div class="panel">
+  <div class="panel-header">
+    <div class="panel-title-block">
+      <h2 class="panel-title">Equipment Quick Selection</h2>
+      <span class="panel-caption">Launch direct AI assistant inquiry isolated to machine documentation</span>
+    </div>
+  </div>
+  <div class="panel-body" style="padding: var(--space-5);">
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--space-4);">
+      {% for machine in machines %}
+        <div style="border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-4); background-color: var(--surface); display: flex; flex-direction: column; justify-content: space-between; gap: var(--space-3);">
+          <div>
+            <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-2);">
+              <h3 style="font-size: var(--fs-base); font-weight: 600; color: var(--text-main);">{{ machine.name }}</h3>
+              {% if machine.is_active %}
+                <span class="badge badge-indexed" style="font-size: 10px;">Ready</span>
+              {% else %}
+                <span class="badge badge-inactive" style="font-size: 10px;">Offline</span>
+              {% endif %}
+            </div>
+            <div class="table-code" style="margin-top: 2px;">{{ machine.model_number }}</div>
+            <p style="font-size: var(--fs-xs); color: var(--text-muted); margin-top: var(--space-2); line-height: 1.4;">
+              {{ machine.description|default:"Standard operating plant unit"|truncatechars:70 }}
+            </p>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border-subtle); padding-top: var(--space-3); margin-top: var(--space-1);">
+            <span style="font-size: 11px; color: var(--text-faint); font-family: var(--font-mono);">
+              {{ machine.manuals.count|default:"0" }} Manuals
+            </span>
+            <a href="{{ assistant_chat_url|default:'/assistant/chat/' }}?machine_id={{ machine.id }}" class="btn btn-secondary btn-sm">
+              Ask Assistant &rarr;
+            </a>
+          </div>
+        </div>
+      {% empty %}
+        <div style="grid-column: 1 / -1; text-align: center; color: var(--text-faint); padding: var(--space-6);">
+          No machines currently available for diagnosis.
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Two-Column Operational Layout: Recent Questions + Diagnostic Activity -->
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: var(--space-5);" class="engineer-grid">
+  <!-- Recent Questions Table -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title-block">
+        <h2 class="panel-title">My Recent Maintenance Queries</h2>
+        <span class="panel-caption">Questions asked on this terminal</span>
+      </div>
+      <a href="{{ assistant_history_url|default:'/assistant/history/' }}" class="btn btn-ghost btn-sm">
+        View Full History &rarr;
+      </a>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table" aria-label="Recent Queries">
+        <thead>
+          <tr>
+            <th>Question</th>
+            <th>Machine</th>
+            <th>Verification Status</th>
+            <th class="num">Date &amp; Time</th>
+            <th style="text-align: right;">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for query in recent_questions %}
+            <tr>
+              <td style="max-width: 320px;">
+                <strong style="color: var(--text-main); font-size: var(--fs-base);">{{ query.question|truncatechars:65 }}</strong>
+              </td>
+              <td>
+                <span>{{ query.machine.name }}</span>
+                <span class="table-subtext">{{ query.machine.model_number }}</span>
+              </td>
+              <td>
+                {% include "includes/status_badge.html" with status=query.answer_status %}
+              </td>
+              <td class="num">
+                <span class="table-code">{{ query.created_at|date:"Y-m-d H:i" }}</span>
+              </td>
+              <td style="text-align: right;">
+                {% url 'answer_detail' query.id as ans_detail_url %}
+                <a href="{{ ans_detail_url|default:'/assistant/answer/' }}{% if not ans_detail_url %}{{ query.id }}/{% endif %}" class="btn btn-secondary btn-sm">
+                  View Evidence
+                </a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr class="table-empty-row">
+              <td colspan="5">
+                No maintenance inquiries logged yet.
+                <a href="{{ assistant_chat_url|default:'/assistant/chat/' }}" style="color: var(--accent); margin-left: 6px; text-decoration: underline;">
+                  Ask your first technical question
+                </a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Quick Diagnostics & Shift Notes -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title-block">
+        <h2 class="panel-title">Terminal Quick Actions</h2>
+      </div>
+    </div>
+    <div class="panel-body" style="padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3);">
+      <div style="font-size: var(--fs-xs); color: var(--text-muted); line-height: 1.5;">
+        Common field queries for immediate troubleshooting:
+      </div>
+      <button type="button" class="btn btn-secondary btn-sm" style="text-align: left; justify-content: flex-start; height: auto; padding: var(--space-2) var(--space-3);" data-prompt="What is the recommended spindle lubrication interval and lubricant specification?">
+        &bull; Spindle lubrication spec &amp; interval
+      </button>
+      <button type="button" class="btn btn-secondary btn-sm" style="text-align: left; justify-content: flex-start; height: auto; padding: var(--space-2) var(--space-3);" data-prompt="How do I troubleshoot Error Code E-204 (Hydraulic pressure drop)?">
+        &bull; Troubleshoot Error Code E-204 (Hydraulic)
+      </button>
+      <button type="button" class="btn btn-secondary btn-sm" style="text-align: left; justify-content: flex-start; height: auto; padding: var(--space-2) var(--space-3);" data-prompt="What are the emergency stop reset procedures and safety interlock checks?">
+        &bull; Emergency stop reset &amp; interlock checks
+      </button>
+      <div style="border-top: 1px solid var(--border-subtle); padding-top: var(--space-3); margin-top: var(--space-2);">
+        <a href="{{ assistant_chat_url|default:'/assistant/chat/' }}" class="btn btn-primary" style="width: 100%;">
+          Open Diagnostic Chat
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

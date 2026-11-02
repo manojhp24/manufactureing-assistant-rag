@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block content %}
+  {% if user.is_superuser or user_role == "administrator" or user_role == "admin" or "Administrator" in user.groups.all|stringformat:"s" %}
+    {% include "dashboard/admin_dashboard.html" %}
+  {% elif user_role == "supervisor" or "Supervisor" in user.groups.all|stringformat:"s" %}
+    {% include "dashboard/supervisor_dashboard.html" %}
+  {% else %}
+    {% include "dashboard/engineer_dashboard.html" %}
+  {% endif %}
+{% endblock %}
+

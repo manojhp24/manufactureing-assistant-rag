@@ -1,0 +1,30 @@
+{% comment %}
+Reusable Breadcrumb Component
+{% endcomment %}
+<nav class="breadcrumb-nav" aria-label="Breadcrumb navigation">
+  <ol class="breadcrumb-list">
+    <li class="breadcrumb-item">
+      <a href="/">Console</a>
+    </li>
+    {% if breadcrumbs %}
+      {% for crumb in breadcrumbs %}
+        <li class="breadcrumb-sep" aria-hidden="true">/</li>
+        {% if forloop.last %}
+          <li class="breadcrumb-item active" aria-current="page">
+            {{ crumb.title|default:crumb }}
+          </li>
+        {% else %}
+          <li class="breadcrumb-item">
+            <a href="{{ crumb.url|default:'#' }}">{{ crumb.title|default:crumb }}</a>
+          </li>
+        {% endif %}
+      {% endfor %}
+    {% else %}
+      <li class="breadcrumb-sep" aria-hidden="true">/</li>
+      <li class="breadcrumb-item active" aria-current="page">
+        {% block current_breadcrumb %}{{ page_title|default:"Overview" }}{% endblock %}
+      </li>
+    {% endif %}
+  </ol>
+</nav>
+

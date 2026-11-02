@@ -1,0 +1,182 @@
+{% load static %}
+{% comment %}
+Reusable Sidebar Component with Role-Based Navigation & Resilient URL Resolution
+Roles supported: Administrator, Engineer, Supervisor
+{% endcomment %}
+{% url 'admin_dashboard' as admin_dash_url %}
+{% url 'machine_list' as machine_list_url %}
+{% url 'machine_create' as machine_create_url %}
+{% url 'manual_list' as manual_list_url %}
+{% url 'upload_manual' as upload_manual_url %}
+{% url 'engineer_dashboard' as engineer_dash_url %}
+{% url 'assistant_chat' as assistant_chat_url %}
+{% url 'assistant_history' as assistant_history_url %}
+{% url 'supervisor_dashboard' as supervisor_dash_url %}
+{% url 'supervisor_history' as supervisor_history_url %}
+
+<aside class="app-sidebar" id="appSidebar" aria-label="Main Navigation">
+  <div class="sidebar-header">
+    <div class="brand-block">
+      <div class="brand-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+        </svg>
+      </div>
+      <div class="brand-info">
+        <span class="brand-title">MMA Industrial</span>
+        <span class="brand-subtitle">Manuals &middot; RAG v1.0</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar-body">
+    {% with current_url=request.resolver_match.url_name %}
+
+      {# Check role: Administrator #}
+      {% if user.is_superuser or user_role == "administrator" or user_role == "admin" or "Administrator" in user.groups.all|stringformat:"s" %}
+        <div class="nav-group">
+          <div class="nav-group-title">Operations</div>
+          <ul class="sidebar-nav-list">
+            <li class="sidebar-nav-item">
+              <a href="{{ admin_dash_url|default:'/dashboard/admin/' }}" class="sidebar-nav-link {% if current_url == 'admin_dashboard' or current_url == 'dashboard' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect width="7" height="9" x="3" y="3" rx="1"></rect>
+                  <rect width="7" height="5" x="14" y="3" rx="1"></rect>
+                  <rect width="7" height="9" x="14" y="12" rx="1"></rect>
+                  <rect width="7" height="5" x="3" y="16" rx="1"></rect>
+                </svg>
+                <span>Admin Dashboard</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <div class="nav-group">
+          <div class="nav-group-title">Equipment Registry</div>
+          <ul class="sidebar-nav-list">
+            <li class="sidebar-nav-item">
+              <a href="{{ machine_list_url|default:'/machines/' }}" class="sidebar-nav-link {% if current_url == 'machine_list' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                  <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                  <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                </svg>
+                <span>Machine Fleet</span>
+              </a>
+            </li>
+            <li class="sidebar-nav-item">
+              <a href="{{ machine_create_url|default:'/machines/create/' }}" class="sidebar-nav-link {% if current_url == 'machine_create' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="16"></line>
+                  <line x1="8" y1="12" x2="16" y2="12"></line>
+                </svg>
+                <span>Register Machine</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <div class="nav-group">
+          <div class="nav-group-title">Document Intelligence</div>
+          <ul class="sidebar-nav-list">
+            <li class="sidebar-nav-item">
+              <a href="{{ manual_list_url|default:'/manuals/' }}" class="sidebar-nav-link {% if current_url == 'manual_list' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"></path>
+                  <path d="M6 6h10"></path>
+                  <path d="M6 10h10"></path>
+                </svg>
+                <span>Manual Repository</span>
+              </a>
+            </li>
+            <li class="sidebar-nav-item">
+              <a href="{{ upload_manual_url|default:'/manuals/upload/' }}" class="sidebar-nav-link {% if current_url == 'upload_manual' or current_url == 'manual_upload' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                <span>Upload PDF Manual</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+
+      {# Supervisor Role #}
+      {% elif user_role == "supervisor" or "Supervisor" in user.groups.all|stringformat:"s" %}
+        <div class="nav-group">
+          <div class="nav-group-title">Auditing & Monitoring</div>
+          <ul class="sidebar-nav-list">
+            <li class="sidebar-nav-item">
+              <a href="{{ supervisor_dash_url|default:'/dashboard/supervisor/' }}" class="sidebar-nav-link {% if current_url == 'supervisor_dashboard' or current_url == 'dashboard' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="20" x2="18" y2="10"></line>
+                  <line x1="12" y1="20" x2="12" y2="4"></line>
+                  <line x1="6" y1="20" x2="6" y2="14"></line>
+                </svg>
+                <span>Supervisor Metrics</span>
+              </a>
+            </li>
+            <li class="sidebar-nav-item">
+              <a href="{{ supervisor_history_url|default:'/assistant/supervisor/history/' }}" class="sidebar-nav-link {% if current_url == 'supervisor_history' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2 12h20"></path>
+                  <path d="M20 12v8H4v-8"></path>
+                  <path d="m4 4 16 0"></path>
+                  <path d="M12 4v16"></path>
+                </svg>
+                <span>Audit Question Log</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+
+      {# Engineer Role (Default / Standard Operational Role) #}
+      {% else %}
+        <div class="nav-group">
+          <div class="nav-group-title">Field Operations</div>
+          <ul class="sidebar-nav-list">
+            <li class="sidebar-nav-item">
+              <a href="{{ engineer_dash_url|default:'/dashboard/engineer/' }}" class="sidebar-nav-link {% if current_url == 'engineer_dashboard' or current_url == 'dashboard' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect width="7" height="9" x="3" y="3" rx="1"></rect>
+                  <rect width="7" height="5" x="14" y="3" rx="1"></rect>
+                  <rect width="7" height="9" x="14" y="12" rx="1"></rect>
+                  <rect width="7" height="5" x="3" y="16" rx="1"></rect>
+                </svg>
+                <span>Engineer Dashboard</span>
+              </a>
+            </li>
+            <li class="sidebar-nav-item">
+              <a href="{{ assistant_chat_url|default:'/assistant/chat/' }}" class="sidebar-nav-link {% if current_url == 'assistant_chat' or current_url == 'chat' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+                <span>Ask Maintenance AI</span>
+              </a>
+            </li>
+            <li class="sidebar-nav-item">
+              <a href="{{ assistant_history_url|default:'/assistant/history/' }}" class="sidebar-nav-link {% if current_url == 'assistant_history' or current_url == 'history' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <span>My Query History</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+      {% endif %}
+
+    {% endwith %}
+  </div>
+
+  <div class="sidebar-footer">
+    <div class="system-status-indicator">
+      <span class="status-dot"></span>
+      <span>RAG Vector Store: <strong>Online</strong></span>
+    </div>
+  </div>
+</aside>
+<div class="sidebar-backdrop" id="sidebarBackdrop"></div>

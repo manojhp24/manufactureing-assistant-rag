@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Administrator Operations &middot; MMA Industrial{% endblock %}
+
+{% block current_breadcrumb %}Admin Operations Console{% endblock %}
+
+{% block content %}
+{% url 'upload_manual' as upload_manual_url %}
+{% url 'machine_create' as machine_create_url %}
+{% url 'manual_list' as manual_list_url %}
+
+<div class="page-header">
+  <div class="page-header-title-block">
+    <h1 class="page-h1">Plant System Overview</h1>
+    <p class="page-subtitle">Equipment fleet telemetry, manual ingestion pipeline, and knowledge base status</p>
+  </div>
+  <div class="page-actions">
+    <a href="{{ upload_manual_url|default:'/manuals/upload/' }}" class="btn btn-secondary">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="17 8 12 3 7 8"></polyline>
+        <line x1="12" y1="3" x2="12" y2="15"></line>
+      </svg>
+      Upload PDF Manual
+    </a>
+    <a href="{{ machine_create_url|default:'/machines/create/' }}" class="btn btn-primary">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="16"></line>
+        <line x1="8" y1="12" x2="16" y2="12"></line>
+      </svg>
+      Register Machine
+    </a>
+  </div>
+</div>
+
+<!-- Industrial KPI Strip -->
+<div class="kpi-strip" role="region" aria-label="System Metrics">
+  <div class="kpi-cell">
+    <span class="kpi-label">Registered Machines</span>
+    <div class="kpi-value-row">
+      <span class="kpi-value num">{{ total_machines|default:"0" }}</span>
+    </div>
+    <span class="kpi-subtext">Active shopfloor fleet</span>
+  </div>
+
+  <div class="kpi-cell">
+    <span class="kpi-label">Total Manuals</span>
+    <div class="kpi-value-row">
+      <span class="kpi-value num">{{ total_manuals|default:"0" }}</span>
+    </div>
+    <span class="kpi-subtext">Technical PDF documents</span>
+  </div>
+
+  <div class="kpi-cell">
+    <span class="kpi-label">Indexed into ChromaDB</span>
+    <div class="kpi-value-row">
+      <span class="kpi-value num">{{ indexed_manuals|default:"0" }}</span>
+    </div>
+    <span class="kpi-subtext positive">Vector search ready</span>
+  </div>
+
+  <div class="kpi-cell">
+    <span class="kpi-label">Indexing Failures</span>
+    <div class="kpi-value-row">
+      <span class="kpi-value num" {% if failed_manuals and failed_manuals > 0 %}style="color: var(--status-danger-text);"{% endif %}>
+        {{ failed_manuals|default:"0" }}
+      </span>
+    </div>
+    <span class="kpi-subtext {% if failed_manuals and failed_manuals > 0 %}danger{% endif %}">
+      {% if failed_manuals and failed_manuals > 0 %}Attention required{% else %}Zero pipeline errors{% endif %}
+    </span>
+  </div>
+</div>
+
+<!-- Two-Column Operational Layout: Recent Uploads + Activity Stream -->
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: var(--space-5);" class="admin-grid">
+  <!-- Recent Uploads Table Panel -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title-block">
+        <h2 class="panel-title">Recent Manual Ingestions</h2>
+        <span class="panel-caption">Latest technical documents processed</span>
+      </div>
+      <a href="{{ manual_list_url|default:'/manuals/' }}" class="btn btn-ghost btn-sm">
+        View All Manuals &rarr;
+      </a>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table" aria-label="Recent Manual Uploads">
+        <thead>
+          <tr>
+            <th>Document Title</th>
+            <th>Doc ID / Rev</th>
+            <th>Machine</th>
+            <th>Status</th>
+            <th class="num">Pages</th>
+            <th class="num">Uploaded</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for manual in recent_uploads %}
+            <tr>
+              <td>
+                <strong style="color: var(--text-main);">{{ manual.title }}</strong>
+                {% if manual.pdf_file %}
+                  <span class="table-subtext">
+                    <a href="{{ manual.pdf_file.url }}" target="_blank" rel="noopener" style="color: var(--accent); display: inline-flex; align-items: center; gap: 3px;">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                        <polyline points="15 3 21 3 21 9"></polyline>
+                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                      </svg>
+                      PDF Source
+                    </a>
+                  </span>
+                {% endif %}
+              </td>
+              <td>
+                <span class="table-code">{{ manual.document_id }}</span>
+                <span class="table-subtext">Rev {{ manual.revision }}</span>
+              </td>
+              <td>
+                <span>{{ manual.machine.name }}</span>
+                <span class="table-subtext">{{ manual.machine.model_number }}</span>
+              </td>
+              <td>
+                {% include "includes/status_badge.html" with status=manual.indexing_status %}
+              </td>
+              <td class="num">
+                <span class="num">{{ manual.total_pages }}</span>
+              </td>
+              <td class="num">
+                <span class="table-code">{{ manual.uploaded_at|date:"Y-m-d H:i" }}</span>
+              </td>
+            </tr>
+          {% empty %}
+            <tr class="table-empty-row">
+              <td colspan="6">
+                No manuals uploaded yet.
+                <a href="{{ upload_manual_url|default:'/manuals/upload/' }}" style="color: var(--accent); margin-left: 6px; text-decoration: underline;">Upload the first PDF</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Operational Activity Stream Panel -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title-block">
+        <h2 class="panel-title">System Ingestion Activity</h2>
+      </div>
+    </div>
+    <div class="panel-body" style="padding: var(--space-4);">
+      <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+        {% for activity in recent_activity %}
+          <div style="display: flex; gap: var(--space-3); padding-bottom: var(--space-3); border-bottom: 1px solid var(--rule);">
+            <div style="width: 8px; height: 8px; border-radius: 50%; background-color: var(--accent); margin-top: 5px; flex-shrink: 0;"></div>
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <div style="font-size: var(--fs-base); color: var(--text-main);">
+                {{ activity.description }}
+              </div>
+              <div style="font-size: 11px; color: var(--text-faint); font-family: var(--font-mono);">
+                {{ activity.timestamp|date:"Y-m-d H:i" }} &bull; {{ activity.user|default:"System" }}
+              </div>
+            </div>
+          </div>
+        {% empty %}
+          <div style="color: var(--text-faint); font-size: var(--fs-sm); text-align: center; padding: var(--space-6) 0;">
+            No recent administrative events recorded.
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,60 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>{% block title %}Manufacturing Manual Assistant{% endblock %}</title>
+
+  <!-- Industrial Design System & Fonts -->
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              DEFAULT: '#0f766e',
+              dark: '#0d5e56',
+              light: '#14b8a6',
+            }
+          }
+        }
+      },
+      corePlugins: {
+        preflight: false,
+      }
+    }
+  </script>
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+  <div class="app-wrapper">
+    <!-- Reusable Role-Aware Sidebar -->
+    {% include "includes/sidebar.html" %}
+
+    <!-- Main Content Stream -->
+    <div class="app-main">
+      <!-- Reusable Topbar with Breadcrumbs & Profile -->
+      {% include "includes/topbar.html" %}
+
+      <!-- Canvas Area -->
+      <main class="page-canvas" id="mainContent">
+        <!-- Reusable Django System Messages -->
+        {% include "includes/messages.html" %}
+
+        <!-- Child Template Injected Content -->
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+
+  <!-- Global UI Interaction Script -->
+  <script src="{% static 'js/app.js' %}"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>
+

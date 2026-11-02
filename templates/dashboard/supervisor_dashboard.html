@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Supervisor Audit Dashboard &middot; MMA Industrial{% endblock %}
+
+{% block current_breadcrumb %}Supervisor Audit Console{% endblock %}
+
+{% block content %}
+{% url 'supervisor_history' as supervisor_history_url %}
+
+<div class="page-header">
+  <div class="page-header-title-block">
+    <h1 class="page-h1">Plant Supervision &amp; Audit Dashboard</h1>
+    <p class="page-subtitle">Plant-wide maintenance inquiry oversight, knowledge coverage auditing, and machine query distribution</p>
+  </div>
+  <div class="page-actions">
+    <a href="{{ supervisor_history_url|default:'/assistant/supervisor/history/' }}" class="btn btn-secondary">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 12h20"></path>
+        <path d="M20 12v8H4v-8"></path>
+        <path d="m4 4 16 0"></path>
+        <path d="M12 4v16"></path>
+      </svg>
+      View All Question Logs
+    </a>
+  </div>
+</div>
+
+<!-- Supervisor KPI Strip -->
+<div class="kpi-strip" role="region" aria-label="Supervisor Metrics">
+  <div class="kpi-cell">
+    <span class="kpi-label">Total Inquiries Logged</span>
+    <div class="kpi-value-row">
+      <span class="kpi-value num">{{ total_questions|default:"0" }}</span>
+    </div>
+    <span class="kpi-subtext">Across all shopfloor stations</span>
+  </div>
+
+  <div class="kpi-cell">
+    <span class="kpi-label">Fully Answered</span>
+    <div class="kpi-value-row">
+      <span class="kpi-value num">{{ answered_questions|default:"0" }}</span>
+    </div>
+    <span class="kpi-subtext positive">Grounded in PDF citations</span>
+  </div>
+
+  <div class="kpi-cell">
+    <span class="kpi-label">Unanswered / Insufficient</span>
+    <div class="kpi-value-row">
+      <span class="kpi-value num" {% if unanswered_questions and unanswered_questions > 0 %}style="color: var(--status-warning-text);"{% endif %}>
+        {{ unanswered_questions|default:"0" }}
+      </span>
+    </div>
+    <span class="kpi-subtext {% if unanswered_questions and unanswered_questions > 0 %}warning{% endif %}">
+      {% if unanswered_questions and unanswered_questions > 0 %}Manual documentation gaps{% else %}Zero manual gaps{% endif %}
+    </span>
+  </div>
+
+  <div class="kpi-cell">
+    <span class="kpi-label">Knowledge Coverage Ratio</span>
+    <div class="kpi-value-row">
+      <span class="kpi-value num">{{ coverage_ratio|default:"98.2" }}%</span>
+    </div>
+    <span class="kpi-subtext positive">Retrieval confidence score</span>
+  </div>
+</div>
+
+<!-- Two-Column Operational Layout: Machine Activity Breakdown + Recent Questions -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-5);" class="supervisor-grid">
+  <!-- Machine-Wise Question Activity Panel -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title-block">
+        <h2 class="panel-title">Equipment Query Distribution</h2>
+        <span class="panel-caption">Maintenance inquiry volume by machine</span>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table" aria-label="Machine Query Activity">
+        <thead>
+          <tr>
+            <th>Machine</th>
+            <th>Model Spec</th>
+            <th class="num">Inquiries</th>
+            <th class="num">Resolved</th>
+            <th class="num">Gaps</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in machine_activity %}
+            <tr>
+              <td>
+                <strong style="color: var(--text-main);">{% firstof item.machine.name item.name "Equipment" %}</strong>
+              </td>
+              <td>
+                <span class="table-code">{% firstof item.machine.model_number item.model_number "N/A" %}</span>
+              </td>
+              <td class="num">
+                <span class="num">{% firstof item.total_queries item.query_count "0" %}</span>
+              </td>
+              <td class="num">
+                <span class="num" style="color: var(--status-success-text);">{{ item.answered_count|default:"0" }}</span>
+              </td>
+              <td class="num">
+                <span class="num" {% if item.unanswered_count and item.unanswered_count > 0 %}style="color: var(--status-warning-text);"{% endif %}>
+                  {{ item.unanswered_count|default:"0" }}
+                </span>
+              </td>
+            </tr>
+          {% empty %}
+            <tr class="table-empty-row">
+              <td colspan="5">
+                No machine query activity logged yet.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Recent Inquiries Under Supervision -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title-block">
+        <h2 class="panel-title">Latest Shopfloor Inquiries</h2>
+        <span class="panel-caption">Recent field engineer queries</span>
+      </div>
+      <a href="{{ supervisor_history_url|default:'/assistant/supervisor/history/' }}" class="btn btn-ghost btn-sm">
+        Audit All &rarr;
+      </a>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table" aria-label="Recent Supervised Questions">
+        <thead>
+          <tr>
+            <th>Question</th>
+            <th>Machine</th>
+            <th>Status</th>
+            <th class="num">Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for query in recent_questions %}
+            <tr>
+              <td style="max-width: 200px;">
+                {% url 'answer_detail' query.id as ans_detail_url %}
+                <a href="{{ ans_detail_url|default:'/assistant/answer/' }}{% if not ans_detail_url %}{{ query.id }}/{% endif %}" style="color: var(--text-main); font-weight: 500;">
+                  {{ query.question|truncatechars:50 }}
+                </a>
+              </td>
+              <td>
+                <span style="font-size: var(--fs-xs);">{{ query.machine.name }}</span>
+              </td>
+              <td>
+                {% include "includes/status_badge.html" with status=query.answer_status %}
+              </td>
+              <td class="num">
+                <span class="table-code">{{ query.created_at|date:"H:i" }}</span>
+              </td>
+            </tr>
+          {% empty %}
+            <tr class="table-empty-row">
+              <td colspan="4">
+                No questions recorded during current shift.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

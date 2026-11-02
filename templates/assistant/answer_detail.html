@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Query Inspection &middot; MMA Industrial{% endblock %}
+{% block current_breadcrumb %}Query Detail &middot; #{{ query.id }}{% endblock %}
+
+{% block content %}
+{% url 'assistant_history' as assistant_history_url %}
+{% url 'assistant_chat' as assistant_chat_url %}
+
+<div class="page-header">
+  <div class="page-header-title-block">
+    <h1 class="page-h1">Maintenance Inquiry Inspection</h1>
+    <p class="page-subtitle">Detailed verification audit, generated answer grounding, and manual citations</p>
+  </div>
+  <div class="page-actions">
+    <a href="{{ assistant_history_url|default:'/assistant/history/' }}" class="btn btn-secondary btn-sm">
+      &larr; Back to History
+    </a>
+    <a href="{{ assistant_chat_url|default:'/assistant/chat/' }}?machine_id={{ query.machine.id }}" class="btn btn-primary btn-sm">
+      Ask Follow-Up Question
+    </a>
+  </div>
+</div>
+
+<div class="detail-grid" style="display:grid;grid-template-columns:2fr 1fr;gap:var(--space-5);">
+  <div style="display:flex;flex-direction:column;gap:var(--space-5);">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title-block">
+          <span style="font-size:var(--fs-xs);font-weight:600;color:var(--text-faint);text-transform:uppercase;">
+            Original Maintenance Inquiry
+          </span>
+        </div>
+        <div style="display:flex;align-items:center;gap:var(--space-2);">
+          <span class="table-code">{{ query.created_at|date:"Y-m-d H:i:s" }}</span>
+          {% include "includes/status_badge.html" with status=query.status %}
+        </div>
+      </div>
+      <div class="panel-body">
+        <div style="font-size:var(--fs-lg);font-weight:600;color:var(--text-main);line-height:1.4;">
+          {{ query.question }}
+        </div>
+        <div style="display:flex;gap:var(--space-3);margin-top:var(--space-3);font-size:var(--fs-xs);color:var(--text-faint);flex-wrap:wrap;">
+          <span><strong>Machine:</strong> {{ query.machine.name }} ({{ query.machine.model_number }})</span>
+          <span>&bull;</span>
+          <span><strong>Engineer:</strong> {{ query.engineer.get_full_name|default:query.engineer.username|default:"Operator" }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title-block">
+          <h2 class="panel-title">RAG Generated Technical Response</h2>
+        </div>
+        <span class="badge badge-neutral">AI-generated response</span>
+      </div>
+      <div class="panel-body">
+        <div class="ai-answer-text">{{ query.answer|linebreaksbr }}</div>
+
+        {% if query.status == "insufficient" or query.status == "insufficient_information" %}
+          <div class="status-callout-notice warning">
+            <div>
+              <strong>Insufficient Information Notice:</strong>
+              The indexed manuals did not provide enough evidence to answer this inquiry.
+              Verify the source manual or consult your supervisor.
+            </div>
+          </div>
+        {% elif query.status == "conflicting" or query.status == "conflicting_information" %}
+          <div class="status-callout-notice danger">
+            <div>
+              <strong>Conflicting Information Warning:</strong>
+              Verify the cited passages and manual revision before proceeding.
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:var(--space-4);">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title-block">
+          <h2 class="panel-title" style="font-size:var(--fs-base);">Verified Citations</h2>
+        </div>
+        <span class="badge badge-neutral">
+          {{ query.citations|length }} Sources
+        </span>
+      </div>
+
+      <div class="panel-body" style="padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-4);">
+        {% for citation in query.citations %}
+          <div class="evidence-card">
+            <div class="evidence-meta-row">
+              <span class="table-code">
+                {% firstof citation.document_id citation.manual_document_id %}
+              </span>
+              <span>
+                Rev {{ citation.revision }} &bull; Page {{ citation.page_number }}
+              </span>
+            </div>
+
+            <div class="evidence-title">
+              {% firstof citation.manual_title citation.title %}
+            </div>
+
+            <blockquote class="evidence-quote">
+              &ldquo;{% firstof citation.text_passage citation.chunk_text citation.text %}&rdquo;
+            </blockquote>
+
+            {% if citation.pdf_url %}
+              <div class="evidence-action-row">
+                <a href="{{ citation.pdf_url }}#page={{ citation.page_number }}"
+                   target="_blank" rel="noopener"
+                   class="btn btn-secondary btn-sm">
+                  Open PDF at Page {{ citation.page_number }}
+                </a>
+              </div>
+            {% endif %}
+          </div>
+        {% empty %}
+          <div style="color:var(--text-faint);font-size:var(--fs-sm);text-align:center;padding:var(--space-6) 0;">
+            No direct citations attached to this record.
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

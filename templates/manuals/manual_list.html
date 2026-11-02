@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Technical Manual Repository &middot; MMA Industrial{% endblock %}
+
+{% block current_breadcrumb %}Manuals Repository{% endblock %}
+
+{% block content %}
+{% url 'upload_manual' as upload_manual_url %}
+
+<div class="page-header">
+  <div class="page-header-title-block">
+    <h1 class="page-h1">Technical Manual Repository</h1>
+    <p class="page-subtitle">Maintenance, schematic, and operational PDF documentation indexed for RAG retrieval</p>
+  </div>
+  <div class="page-actions">
+    <a href="{{ upload_manual_url|default:'/manuals/upload/' }}" class="btn btn-primary">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="17 8 12 3 7 8"></polyline>
+        <line x1="12" y1="3" x2="12" y2="15"></line>
+      </svg>
+      Upload PDF Manual
+    </a>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-header">
+    <div class="panel-title-block">
+      <h2 class="panel-title">Ingested Document Catalog</h2>
+      <span class="panel-caption">
+        {% if manuals %}<span class="num">{{ manuals|length }}</span> documents indexed{% endif %}
+      </span>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table" aria-label="Technical Manuals Catalog">
+      <thead>
+        <tr>
+          <th>Document Title</th>
+          <th>Doc ID</th>
+          <th>Target Machine</th>
+          <th>Revision</th>
+          <th>Indexing Status</th>
+          <th class="num">Pages</th>
+          <th class="num">Chunks</th>
+          <th class="num">Uploaded At</th>
+          <th style="text-align: right;">Source Document</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for manual in manuals %}
+          <tr>
+            <td>
+              <strong style="color: var(--text-main);">{{ manual.title }}</strong>
+            </td>
+            <td>
+              <span class="table-code">{{ manual.document_id }}</span>
+            </td>
+            <td>
+              <span>{{ manual.machine.name }}</span>
+              <span class="table-subtext">{{ manual.machine.model_number }}</span>
+            </td>
+            <td>
+              <span class="table-code">Rev {{ manual.revision }}</span>
+            </td>
+            <td>
+              {% include "includes/status_badge.html" with status=manual.indexing_status %}
+            </td>
+            <td class="num">
+              <span class="num">{{ manual.total_pages }}</span>
+            </td>
+            <td class="num">
+              <span class="num">{{ manual.total_chunks }}</span>
+            </td>
+            <td class="num">
+              <span class="table-code">{{ manual.uploaded_at|date:"Y-m-d H:i" }}</span>
+            </td>
+            <td style="text-align: right;">
+              {% if manual.pdf_file %}
+                <a href="{{ manual.pdf_file.url }}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm" title="Open source PDF document">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                  </svg>
+                  View PDF
+                </a>
+              {% else %}
+                <span style="color: var(--text-disabled); font-size: var(--fs-xs);">&mdash;</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr class="table-empty-row">
+            <td colspan="9">
+              No technical manuals currently uploaded.
+              <a href="{{ upload_manual_url|default:'/manuals/upload/' }}" style="color: var(--accent); margin-left: 6px; text-decoration: underline;">
+                Upload the first manual
+              </a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if page_obj %}
+    <div style="padding: 0 var(--space-5) var(--space-4);">
+      {% include "includes/pagination.html" with page_obj=page_obj %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

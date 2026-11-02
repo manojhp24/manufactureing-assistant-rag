@@ -1,0 +1,44 @@
+{% comment %}
+Reusable Status Badge Component
+Usage:
+  {% include "includes/status_badge.html" with status=item.indexing_status %}
+  {% include "includes/status_badge.html" with status=item.answer_status label="Verified" %}
+{% endcomment %}
+{% if status %}
+  {% with s=status|lower %}
+    {% if s == "indexed" or s == "answered" or s == "active" or s == "success" %}
+      <span class="badge badge-indexed">
+        <span class="badge-dot"></span>
+        {{ label|default:status|title }}
+      </span>
+    {% elif s == "pending" or s == "processing" or s == "insufficient_information" or s == "insufficient" or s == "warning" %}
+      <span class="badge badge-insufficient">
+        <span class="badge-dot"></span>
+        {% if s == "insufficient_information" or s == "insufficient" %}
+          Insufficient Info
+        {% else %}
+          {{ label|default:status|title }}
+        {% endif %}
+      </span>
+    {% elif s == "failed" or s == "conflicting_information" or s == "conflicting" or s == "inactive" or s == "error" %}
+      <span class="badge badge-failed">
+        <span class="badge-dot"></span>
+        {% if s == "conflicting_information" or s == "conflicting" %}
+          Conflicting Info
+        {% else %}
+          {{ label|default:status|title }}
+        {% endif %}
+      </span>
+    {% else %}
+      <span class="badge badge-neutral">
+        <span class="badge-dot"></span>
+        {{ label|default:status|title }}
+      </span>
+    {% endif %}
+  {% endwith %}
+{% else %}
+  <span class="badge badge-neutral">
+    <span class="badge-dot"></span>
+    {{ label|default:"Draft"|title }}
+  </span>
+{% endif %}

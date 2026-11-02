@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Machine Fleet Management &middot; MMA Industrial{% endblock %}
+
+{% block current_breadcrumb %}Equipment Fleet{% endblock %}
+
+{% block content %}
+{% url 'machine_create' as machine_create_url %}
+{% url 'machine_list' as machine_list_url %}
+{% url 'manual_list' as manual_list_url %}
+
+<div class="page-header">
+  <div class="page-header-title-block">
+    <h1 class="page-h1">Industrial Machine Registry</h1>
+    <p class="page-subtitle">Configured shopfloor machinery, models, and linked service manuals</p>
+  </div>
+  <div class="page-actions">
+    {% if is_admin %}
+      <a href="{{ machine_create_url|default:'/machines/create/' }}" class="btn btn-primary">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="16"></line>
+          <line x1="8" y1="12" x2="16" y2="12"></line>
+        </svg>
+        Register New Machine
+      </a>
+    {% endif %}
+  </div>
+</div>
+
+{# Filter & Search Toolbar #}
+<div class="panel" style="margin-bottom: var(--space-4); padding: var(--space-3) var(--space-4);">
+  <form method="get" action="{{ machine_list_url|default:'/machines/' }}" style="display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap;">
+    <div style="flex: 1; min-width: 240px; position: relative;">
+      <input 
+        type="search" 
+        name="q" 
+        value="{{ search_query|default:'' }}" 
+        class="form-control" 
+        placeholder="Search by machine name, model number, or cell..."
+        style="padding-left: 36px; height: 38px;"
+      >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 12px; top: 11px; color: var(--text-faint);">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+    </div>
+
+    <div style="display: flex; gap: var(--space-2); align-items: center;">
+      <a href="{{ machine_list_url|default:'/machines/' }}{% if search_query %}?q={{ search_query }}{% endif %}" class="btn btn-sm {% if not status_filter %}btn-secondary{% else %}btn-ghost{% endif %}">
+        All ({{ total_count|default:"0" }})
+      </a>
+      <a href="{{ machine_list_url|default:'/machines/' }}?status=active{% if search_query %}&q={{ search_query }}{% endif %}" class="btn btn-sm {% if status_filter == 'active' %}btn-secondary{% else %}btn-ghost{% endif %}">
+        Operational ({{ active_count|default:"0" }})
+      </a>
+      <a href="{{ machine_list_url|default:'/machines/' }}?status=inactive{% if search_query %}&q={{ search_query }}{% endif %}" class="btn btn-sm {% if status_filter == 'inactive' %}btn-secondary{% else %}btn-ghost{% endif %}">
+        Decommissioned ({{ inactive_count|default:"0" }})
+      </a>
+    </div>
+
+    <button type="submit" class="btn btn-secondary btn-sm" style="height: 38px;">
+      Filter Fleet
+    </button>
+    {% if search_query or status_filter %}
+      <a href="{{ machine_list_url|default:'/machines/' }}" class="btn btn-ghost btn-sm" style="color: var(--text-faint);">
+        Clear
+      </a>
+    {% endif %}
+  </form>
+</div>
+
+<div class="panel">
+  <div class="panel-header">
+    <div class="panel-title-block">
+      <h2 class="panel-title">Equipment Registry Fleet</h2>
+      <span class="panel-caption">
+        {% if machines %}<span class="num">{{ machines|length }}</span> units listed{% endif %}
+      </span>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table" aria-label="Machine Fleet Table">
+      <thead>
+        <tr>
+          <th>Machine Name</th>
+          <th>Model Number</th>
+          <th>Description</th>
+          <th>Operational Status</th>
+          <th class="num">Linked Manuals</th>
+          <th class="num">Registered Date</th>
+          <th style="text-align: right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for machine in machines %}
+          <tr>
+            <td>
+              <strong style="color: var(--text-main);">{{ machine.name }}</strong>
+            </td>
+            <td>
+              <span class="table-code">{{ machine.model_number }}</span>
+            </td>
+            <td style="max-width: 280px; color: var(--text-muted);">
+              {{ machine.description|default:"&mdash;"|truncatechars:80 }}
+            </td>
+            <td>
+              {% if machine.is_active %}
+                <span class="badge badge-active">
+                  <span class="badge-dot"></span>
+                  Operational
+                </span>
+              {% else %}
+                <span class="badge badge-inactive">
+                  <span class="badge-dot"></span>
+                  Decommissioned
+                </span>
+              {% endif %}
+            </td>
+            <td class="num">
+              <span class="num">{% firstof machine.manuals_count machine.manuals.count "0" %}</span>
+            </td>
+            <td class="num">
+              <span class="table-code">{{ machine.created_at|date:"Y-m-d" }}</span>
+            </td>
+            <td style="text-align: right;">
+              <div style="display: inline-flex; gap: var(--space-2); align-items: center;">
+                <a href="{{ manual_list_url|default:'/manuals/' }}?machine={{ machine.id }}" class="btn btn-secondary btn-sm" title="View manuals for this machine">
+                  Manuals
+                </a>
+
+                {% if is_admin or is_supervisor %}
+                  {% url 'machine_edit' machine.id as m_edit_url %}
+                  <a href="{{ m_edit_url|default:'/machines/'|add:machine.id|add:'/edit/' }}" class="btn btn-ghost btn-sm" title="Edit machine configuration">
+                    Edit
+                  </a>
+                {% endif %}
+
+                {% if is_admin %}
+                  {% url 'machine_toggle_status' machine.id as m_toggle_url %}
+                  <form method="post" action="{{ m_toggle_url|default:'/machines/'|add:machine.id|add:'/toggle-status/' }}" style="display: inline; margin: 0;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-ghost btn-sm" style="font-size: 11px; color: var(--text-faint);" title="{% if machine.is_active %}Decommission equipment{% else %}Restore operational status{% endif %}">
+                      {% if machine.is_active %}Decommission{% else %}Activate{% endif %}
+                    </button>
+                  </form>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+        {% empty %}
+          <tr class="table-empty-row">
+            <td colspan="7">
+              {% if search_query or status_filter %}
+                No industrial machines matched your search parameters.
+                <a href="{{ machine_list_url|default:'/machines/' }}" style="color: var(--accent); margin-left: 6px; text-decoration: underline;">
+                  Reset filters
+                </a>
+              {% else %}
+                No industrial machines currently registered in the database.
+                {% if is_admin %}
+                  <a href="{{ machine_create_url|default:'/machines/create/' }}" style="color: var(--accent); margin-left: 6px; text-decoration: underline;">
+                    Register the first machine
+                  </a>
+                {% endif %}
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,156 @@
+
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+  {% if machine %}Edit Machine &middot; {{ machine.name }}{% else %}Register Machine &middot; MMA Industrial{% endif %}
+{% endblock %}
+
+{% block current_breadcrumb %}
+  {% if machine %}Edit {{ machine.name }}{% else %}Register Machine{% endif %}
+{% endblock %}
+
+{% block content %}
+{% url 'machine_list' as machine_list_url %}
+
+<div class="page-header">
+  <div class="page-header-title-block">
+    <h1 class="page-h1">
+      {% if machine %}Edit Machine Configuration{% else %}Register Shopfloor Machinery{% endif %}
+    </h1>
+    <p class="page-subtitle">Configure equipment specifications and isolation parameters for RAG retrieval</p>
+  </div>
+</div>
+
+<div style="max-width: 680px;">
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title-block">
+        <h2 class="panel-title">Equipment Specifications</h2>
+      </div>
+    </div>
+
+    <form method="post" action="" novalidate>
+      {% csrf_token %}
+
+      <div class="panel-body">
+
+        {% if form.non_field_errors %}
+          <div class="alert alert-error" style="margin-bottom: var(--space-4);">
+            <div class="alert-content">
+              {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+            </div>
+          </div>
+        {% endif %}
+
+        <div class="form-group">
+          <label for="id_name" class="form-label">
+            Machine Designation / Name
+            <span class="required-mark">*</span>
+          </label>
+
+          <input
+            type="text"
+            name="name"
+            id="id_name"
+            class="form-control {% if form.name.errors %}is-invalid{% endif %}"
+            placeholder="e.g. CNC 5-Axis Milling Center"
+            value="{% if form.name.value != None %}{{ form.name.value }}{% elif machine %}{{ machine.name }}{% endif %}"
+            required
+          >
+
+          <span class="form-help">Plant floor name or equipment station label.</span>
+
+          {% if form.name.errors %}
+            <div class="form-error-msg">
+              {% for error in form.name.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="form-group">
+          <label for="id_model_number" class="form-label">
+            Model Number / Serial Spec
+            <span class="required-mark">*</span>
+          </label>
+
+          <input
+            type="text"
+            name="model_number"
+            id="id_model_number"
+            class="form-control {% if form.model_number.errors %}is-invalid{% endif %}"
+            placeholder="e.g. M-HP200"
+            value="{% if form.model_number.value != None %}{{ form.model_number.value }}{% elif machine %}{{ machine.model_number }}{% endif %}"
+            required
+          >
+
+          <span class="form-help">Unique manufacturer model number used for machine isolation in RAG queries.</span>
+
+          {% if form.model_number.errors %}
+            <div class="form-error-msg">
+              {% for error in form.model_number.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="form-group">
+          <label for="id_description" class="form-label">
+            Equipment Description & Notes
+          </label>
+
+          <textarea
+            name="description"
+            id="id_description"
+            class="form-control {% if form.description.errors %}is-invalid{% endif %}"
+            placeholder="Operating cell, electrical load, cooling specifications, preventive maintenance schedules..."
+          >{% if form.description.value != None %}{{ form.description.value }}{% elif machine %}{{ machine.description }}{% endif %}</textarea>
+
+          {% if form.description.errors %}
+            <div class="form-error-msg">
+              {% for error in form.description.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="form-group" style="margin-top: var(--space-4);">
+          <label class="form-checkbox-label" for="id_is_active">
+
+            <input
+              type="checkbox"
+              name="is_active"
+              id="id_is_active"
+              {% if form.is_bound %}
+                {% if form.is_active.value %}checked{% endif %}
+              {% elif machine %}
+                {% if machine.is_active %}checked{% endif %}
+              {% else %}
+                checked
+              {% endif %}
+            >
+
+            <span>Active in Production (Enabled for Maintenance AI Queries)</span>
+          </label>
+        </div>
+
+      </div>
+
+      <div class="panel-footer">
+        <a href="{{ machine_list_url|default:'/machines/' }}" class="btn btn-secondary">
+          Cancel
+        </a>
+
+        <button type="submit" class="btn btn-primary">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+            <polyline points="7 3 7 8 15 8"></polyline>
+          </svg>
+
+          {% if machine %}Update Machine{% else %}Save Machine{% endif %}
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>
+{% endblock %}

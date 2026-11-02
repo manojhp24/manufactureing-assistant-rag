@@ -1,0 +1,294 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}AI Maintenance Assistant &middot; MMA Industrial{% endblock %}
+
+{% block current_breadcrumb %}AI Maintenance Assistant{% endblock %}
+
+{% block content %}
+{% url 'assistant_history' as assistant_history_url %}
+{% url 'assistant_chat' as assistant_chat_url %}
+
+<div class="page-header" style="margin-bottom: 0;">
+  <div class="page-header-title-block">
+    <h1 class="page-h1">AI Maintenance Assistant</h1>
+    <p class="page-subtitle">RAG grounded diagnostic guidance with verified PDF manual citations</p>
+  </div>
+  <div class="page-actions">
+    <a href="{{ assistant_history_url|default:'/assistant/history/' }}" class="btn btn-secondary btn-sm">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <polyline points="12 6 12 12 16 14"></polyline>
+      </svg>
+      Query History
+    </a>
+  </div>
+</div>
+
+<!-- Chat Interface Layout: 2 Columns (Conversation Stream + Supporting Evidence Panel) -->
+<div class="chat-layout">
+  <!-- Main Chat Conversation Column -->
+  <div class="chat-main-column">
+    <!-- Machine Selection & Context Bar -->
+    <div class="chat-context-bar">
+      <form method="get" action="{{ assistant_chat_url|default:'/assistant/chat/' }}" id="machineSelectForm" style="display: flex; align-items: center; gap: var(--space-3); flex: 1; flex-wrap: wrap;">
+        <div class="chat-machine-selector-wrapper">
+          <label for="machineSelector" style="font-size: var(--fs-xs); font-weight: 600; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.3px;">
+            Target Machine:
+          </label>
+          <select name="machine_id" id="machineSelector" class="form-control" onchange="this.form.submit();">
+            <option value="">&mdash; Select Equipment Fleet &mdash;</option>
+            {% for machine in machines %}
+              <option value="{{ machine.id }}" {% if selected_machine and selected_machine.id == machine.id %}selected{% endif %}>
+                {{ machine.name }} ({{ machine.model_number }})
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        {% if selected_machine %}
+          <div style="display: flex; align-items: center; gap: var(--space-2); margin-left: auto;">
+            <span class="badge badge-indexed" title="Knowledge Base Ready">
+              <span class="badge-dot"></span>
+              {{ selected_machine.manuals.count|default:"0" }} Manuals Ingested
+            </span>
+            <span class="badge badge-neutral" style="font-family: var(--font-mono);">
+              {{ selected_machine.model_number }}
+            </span>
+          </div>
+        {% endif %}
+      </form>
+    </div>
+
+    <!-- Conversation Messages Scroll Area -->
+    <div class="chat-messages-scroll" id="chatMessagesScroll">
+      {% if conversation %}
+        {% for item in conversation %}
+          <div class="chat-entry">
+            <!-- Engineer Question Block -->
+            <div class="user-question-block">
+              <div class="chat-avatar-icon chat-avatar-user">
+                ENG
+              </div>
+              <div class="chat-entry-body">
+                <div class="chat-entry-meta">
+                  <span class="chat-speaker-name">{% firstof item.engineer.get_full_name item.engineer.username user.get_full_name user.username "Engineer" %}</span>
+                  <span class="chat-timestamp">{{ item.created_at|date:"Y-m-d H:i:s" }}</span>
+                  {% if item.machine %}
+                    <span class="badge badge-neutral" style="font-size: 10px; margin-left: auto;">
+                      {{ item.machine.name }}
+                    </span>
+                  {% endif %}
+                </div>
+                <div class="chat-question-text">
+                  {{ item.question }}
+                </div>
+              </div>
+            </div>
+
+            <!-- AI Generated Answer Block -->
+            <div class="ai-answer-block status-{{ item.answer_status|lower }}">
+              <div class="chat-avatar-icon chat-avatar-ai">
+                AI
+              </div>
+              <div class="chat-entry-body">
+                <div class="chat-entry-meta" style="justify-content: space-between;">
+                  <div style="display: flex; align-items: center; gap: var(--space-2);">
+                    <span class="chat-speaker-name">Maintenance Assistant</span>
+                    <span class="chat-timestamp">{{ item.answered_at|default:item.created_at|date:"Y-m-d H:i:s" }}</span>
+                  </div>
+                  <div>
+                    {% include "includes/status_badge.html" with status=item.answer_status %}
+                  </div>
+                </div>
+
+                <!-- Answer Content -->
+                <div class="ai-answer-text">
+                  {{ item.answer }}
+                </div>
+
+                <!-- Visual State Notice Callouts -->
+                {% if item.answer_status == 'insufficient_information' or item.answer_status == 'insufficient' %}
+                  <div class="status-callout-notice warning">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 2px;">
+                      <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+                      <line x1="12" y1="9" x2="12" y2="13"></line>
+                      <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                    <div>
+                      <strong>Insufficient Information Notice:</strong> The ingested technical manuals for this machine do not contain conclusive specifications or procedures for this specific query. Refine the query with error codes, or refer to plant supervisor protocol.
+                    </div>
+                  </div>
+                {% elif item.answer_status == 'conflicting_information' or item.answer_status == 'conflicting' %}
+                  <div class="status-callout-notice danger">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 2px;">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="12" y1="8" x2="12" y2="12"></line>
+                      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <div>
+                      <strong>Conflicting Specification Notice:</strong> The manual contains conflicting operational parameters across different manual sections or revisions. Verify cited passages before executing maintenance.
+                    </div>
+                  </div>
+                {% endif %}
+
+                <!-- Citation References Bar -->
+                {% if item.citations %}
+                  <div style="margin-top: var(--space-4); padding-top: var(--space-3); border-top: 1px solid var(--border-subtle); display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap;">
+                    <span style="font-size: 11px; font-weight: 600; color: var(--text-faint); text-transform: uppercase;">
+                      Citations:
+                    </span>
+                    {% for citation in item.citations %}
+                      <span class="badge badge-neutral" style="font-family: var(--font-mono); font-size: 11px;" title="{{ citation.manual_title }}">
+                        [Doc {% firstof citation.document_id citation.manual_document_id citation.manual.document_id "Manual" %}, p.{{ citation.page_number }}]
+                      </span>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <!-- Empty Conversation State -->
+        <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: var(--text-faint); padding: var(--space-8) var(--space-4); gap: var(--space-3);">
+          <div style="width: 44px; height: 44px; border-radius: var(--radius-md); background-color: var(--raised); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--text-muted);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+          </div>
+          <div>
+            <h3 style="font-size: var(--fs-md); font-weight: 600; color: var(--text-main);">
+              {% if selected_machine %}
+                Equipment Connected: {{ selected_machine.name }}
+              {% else %}
+                Select an Equipment Fleet to Begin
+              {% endif %}
+            </h3>
+            <p style="font-size: var(--fs-base); max-width: 440px; margin: 4px auto 0; line-height: 1.4;">
+              Ask technical questions regarding preventive maintenance, torque specs, hydraulic pressure thresholds, or alarm error codes.
+            </p>
+          </div>
+
+          <div style="display: flex; gap: var(--space-2); flex-wrap: wrap; justify-content: center; max-width: 540px; margin-top: var(--space-2);">
+            <button type="button" class="btn btn-secondary btn-sm" data-prompt="What is the recommended spindle oil change procedure?">
+              Spindle oil change procedure
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" data-prompt="What are the maximum temperature limits for axis servo motors?">
+              Servo motor temperature limits
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" data-prompt="Check hydraulic pressure relief valve torque specifications.">
+              Relief valve torque specs
+            </button>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Question Input Form Bar -->
+    <div class="chat-input-bar">
+      <div class="chat-loading-spinner" id="chatLoadingSpinner">
+        <span class="spinner-icon"></span>
+        <span>Retrieving semantically matched chunks &amp; verifying citations...</span>
+      </div>
+
+      <form method="post" action="{{ assistant_chat_url|default:'/assistant/chat/' }}" id="chatForm">
+        {% csrf_token %}
+        <input type="hidden" name="machine_id" value="{{ selected_machine.id }}">
+
+        <div class="chat-input-row">
+          <textarea 
+            name="question" 
+            id="chatQuestionInput" 
+            class="chat-textarea" 
+            placeholder="Ask maintenance question grounded in manual (e.g. What is the procedure for zero-point alignment?)..." 
+            rows="1" 
+            required 
+            {% if not selected_machine %}disabled title="Please select a machine first"{% endif %}
+          ></textarea>
+          <button 
+            type="submit" 
+            class="btn btn-primary chat-send-btn" 
+            id="chatSendBtn"
+            {% if not selected_machine %}disabled{% endif %}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+            Send Question
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Supporting Evidence & Citations Column -->
+  <aside class="chat-evidence-column" aria-label="Supporting Evidence">
+    <div class="evidence-header">
+      <div class="panel-title-block">
+        <h2 class="panel-title" style="font-size: var(--fs-base);">Supporting Evidence</h2>
+      </div>
+      <span class="badge badge-neutral" style="font-size: 10px;">
+        {% if latest_citations %}{{ latest_citations|length }} Sources{% else %}Evidence Grounding{% endif %}
+      </span>
+    </div>
+
+    <div class="evidence-body">
+      {% if latest_citations %}
+        {% for citation in latest_citations %}
+          <div class="evidence-card">
+            <div class="evidence-meta-row">
+              <span class="table-code">{% firstof citation.document_id citation.manual.document_id %}</span>
+              <span>Rev {% firstof citation.revision citation.manual.revision %} &bull; Page {{ citation.page_number }}</span>
+            </div>
+
+            <div class="evidence-title">
+              {% firstof citation.manual_title citation.manual.title %}
+            </div>
+
+            <blockquote class="evidence-quote">
+              &ldquo;{% firstof citation.text_passage citation.chunk_text %}&rdquo;
+            </blockquote>
+
+            <div class="evidence-action-row">
+              {% if citation.pdf_url or citation.manual.pdf_file %}
+                <a 
+                  href="{% firstof citation.pdf_url citation.manual.pdf_file.url %}#page={{ citation.page_number }}" 
+                  target="_blank" 
+                  rel="noopener" 
+                  class="btn btn-secondary btn-sm"
+                  title="Open source PDF to Page {{ citation.page_number }}"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                  </svg>
+                  Open PDF (p. {{ citation.page_number }})
+                </a>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div style="text-align: center; color: var(--text-faint); padding: var(--space-8) var(--space-3); display: flex; flex-direction: column; gap: var(--space-2); align-items: center;">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <div style="font-size: var(--fs-base); font-weight: 500; color: var(--text-main);">
+            No Active Citations
+          </div>
+          <div style="font-size: var(--fs-xs); line-height: 1.4;">
+            When the AI responds, exact matching manual passages, revision numbers, and page references appear here for verification.
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </aside>
+</div>
+{% endblock %}

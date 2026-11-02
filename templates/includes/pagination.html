@@ -1,0 +1,42 @@
+{% comment %}
+Reusable Pagination Component
+Usage:
+  {% include "includes/pagination.html" with page_obj=page_obj %}
+{% endcomment %}
+{% if page_obj and page_obj.has_other_pages %}
+  <div class="pagination-wrapper" aria-label="Pagination Navigation">
+    <div class="pagination-info">
+      Showing items <span class="num">{{ page_obj.start_index }}</span> to <span class="num">{{ page_obj.end_index }}</span> of <span class="num">{{ page_obj.paginator.count }}</span> total records
+    </div>
+    <div class="pagination-controls">
+      {% if page_obj.has_previous %}
+        <a href="?page=1{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.machine %}&machine={{ request.GET.machine }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" class="pagination-btn" title="First page" aria-label="First page">
+          &laquo;
+        </a>
+        <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.machine %}&machine={{ request.GET.machine }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" class="pagination-btn" title="Previous page" aria-label="Previous page">
+          &lsaquo;
+        </a>
+      {% else %}
+        <button type="button" class="pagination-btn" disabled aria-disabled="true">&laquo;</button>
+        <button type="button" class="pagination-btn" disabled aria-disabled="true">&lsaquo;</button>
+      {% endif %}
+
+      <span class="pagination-btn active num" aria-current="page">
+        {{ page_obj.number }}
+      </span>
+
+      {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.machine %}&machine={{ request.GET.machine }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" class="pagination-btn" title="Next page" aria-label="Next page">
+          &rsaquo;
+        </a>
+        <a href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.machine %}&machine={{ request.GET.machine }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" class="pagination-btn" title="Last page" aria-label="Last page">
+          &raquo;
+        </a>
+      {% else %}
+        <button type="button" class="pagination-btn" disabled aria-disabled="true">&rsaquo;</button>
+        <button type="button" class="pagination-btn" disabled aria-disabled="true">&raquo;</button>
+      {% endif %}
+    </div>
+  </div>
+{% endif %}
+

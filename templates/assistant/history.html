@@ -1,0 +1,130 @@
+{% extends "base.html" %} {% load static %} 
+{% block title %}Diagnostic Query
+History &middot; MMA Industrial
+{% endblock %} {% block current_breadcrumb%}Query History{% endblock %} {% block content %} {% url 'assistant_chat' as
+assistant_chat_url %}
+
+<div class="page-header">
+  <div class="page-header-title-block">
+    <h1 class="page-h1">Operator Maintenance Query History</h1>
+    <p class="page-subtitle">
+      Audit log of technical questions asked, grounded answers, and verification
+      statuses
+    </p>
+  </div>
+  <div class="page-actions">
+    <a
+      href="{{ assistant_chat_url|default:'/assistant/chat/' }}"
+      class="btn btn-primary"
+    >
+      <svg
+        width="15"
+        height="15"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path
+          d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+        ></path>
+      </svg>
+      New Question
+    </a>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-header">
+    <div class="panel-title-block">
+      <h2 class="panel-title">Inquiry Archive</h2>
+      <span class="panel-caption">
+        {% if questions %}<span class="num">{{ questions|length }}</span>
+        queries logged{% endif %}
+      </span>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table" aria-label="Query History Table">
+      <thead>
+        <tr>
+          <th>Inquiry Question</th>
+          <th>Machine Model</th>
+          <th>Verification Status</th>
+          <th class="num">Citations</th>
+          <th class="num">Date &amp; Time</th>
+          <th style="text-align: right">Inspection</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in questions %}
+        <tr>
+          <td style="max-width: 380px">
+            <strong style="color: var(--text-main); font-size: var(--fs-base)"
+              >{{ item.question }}</strong
+            >
+            {% if item.answer %}
+            <span
+              class="table-subtext"
+              style="color: var(--text-muted); line-height: 1.4"
+            >
+              {{ item.answer|truncatechars:100 }}
+            </span>
+            {% endif %}
+          </td>
+          <td>
+            <span>{{ item.machine.name }}</span>
+            <span class="table-subtext">{{ item.machine.model_number }}</span>
+          </td>
+          <td>
+            {% include "includes/status_badge.html" with status=item.answer_status %}
+          </td>
+          <td class="num">
+            <span class="num">{{ item.citations.count|default:"0" }}</span>
+          </td>
+          <td class="num">
+            <span class="table-code"
+              >{{ item.created_at|date:"Y-m-d H:i" }}</span
+            >
+          </td>
+          <td style="text-align: right">
+            {% url 'answer_detail' item.id as ans_detail_url %}
+            <a
+              href="{{ ans_detail_url|default:'/assistant/answer/' }}{% if not ans_detail_url %}{{ item.id }}/{% endif %}"
+              class="btn btn-secondary btn-sm"
+            >
+              View Evidence &rarr;
+            </a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr class="table-empty-row">
+          <td colspan="6">
+            No historical inquiries recorded.
+            <a
+              href="{{ assistant_chat_url|default:'/assistant/chat/' }}"
+              style="
+                color: var(--accent);
+                margin-left: 6px;
+                text-decoration: underline;
+              "
+            >
+              Ask your first question
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if page_obj %}
+  <div style="padding: 0 var(--space-5) var(--space-4)">
+    {% include "includes/pagination.html" with page_obj=page_obj %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

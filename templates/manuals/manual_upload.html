@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Ingest PDF Manual &middot; MMA Industrial{% endblock %}
+
+{% block current_breadcrumb %}Upload Manual{% endblock %}
+
+{% block content %}
+{% url 'upload_manual' as upload_manual_url %}
+{% url 'manual_list' as manual_list_url %}
+
+<div class="page-header">
+  <div class="page-header-title-block">
+    <h1 class="page-h1">Ingest Technical PDF Manual</h1>
+    <p class="page-subtitle">Upload maintenance manuals, schematics, and technical specifications for RAG chunking and vector embedding</p>
+  </div>
+</div>
+
+<div style="max-width: 760px;">
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title-block">
+        <h2 class="panel-title">Document Metadata & Ingestion Parameters</h2>
+      </div>
+      <span class="badge badge-neutral">Pipeline: ChromaDB + Gemini Embeddings</span>
+    </div>
+
+    <form method="post" action="{{ upload_manual_url|default:'/manuals/upload/' }}" enctype="multipart/form-data" class="upload-form" novalidate>
+      {% csrf_token %}
+
+      <div class="panel-body">
+        {% if form.non_field_errors %}
+          <div class="alert alert-error" style="margin-bottom: var(--space-4);">
+            <div class="alert-content">
+              {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+            </div>
+          </div>
+        {% endif %}
+
+        <div class="form-group">
+          <label for="id_machine" class="form-label">
+            Target Machinery Fleet
+            <span class="required-mark">*</span>
+          </label>
+          {% if form.machine %}
+            {{ form.machine }}
+          {% else %}
+            <select name="machine" id="id_machine" class="form-control" required>
+              <option value="">&mdash; Select Target Machine &mdash;</option>
+              {% for machine in machines %}
+                <option value="{{ machine.id }}">{{ machine.name }} ({{ machine.model_number }})</option>
+              {% endfor %}
+            </select>
+          {% endif %}
+          <span class="form-help">Queries are strictly isolated to the selected machine's manual corpus.</span>
+          {% if form.machine.errors %}
+            <div class="form-error-msg">
+              {% for error in form.machine.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: var(--space-4);">
+          <div class="form-group">
+            <label for="id_document_id" class="form-label">
+              Document Identifier (Doc ID)
+              <span class="required-mark">*</span>
+            </label>
+            <input 
+              type="text" 
+              name="document_id" 
+              id="id_document_id" 
+              class="form-control {% if form.document_id.errors %}is-invalid{% endif %}" 
+              placeholder="e.g. MAN-DMG-5000-ELEC" 
+              value="{{ form.document_id.value|default:'' }}" 
+              required
+            >
+            <span class="form-help">Unique manufacturing document code.</span>
+            {% if form.document_id.errors %}
+              <div class="form-error-msg">
+                {% for error in form.document_id.errors %}{{ error }}{% endfor %}
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="form-group">
+            <label for="id_revision" class="form-label">
+              Revision Code
+              <span class="required-mark">*</span>
+            </label>
+            <input 
+              type="text" 
+              name="revision" 
+              id="id_revision" 
+              class="form-control {% if form.revision.errors %}is-invalid{% endif %}" 
+              placeholder="e.g. 2.4B" 
+              value="{{ form.revision.value|default:'' }}" 
+              required
+            >
+            <span class="form-help">Document release / engineering revision.</span>
+            {% if form.revision.errors %}
+              <div class="form-error-msg">
+                {% for error in form.revision.errors %}{{ error }}{% endfor %}
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="id_title" class="form-label">
+            Manual Descriptive Title
+            <span class="required-mark">*</span>
+          </label>
+          <input 
+            type="text" 
+            name="title" 
+            id="id_title" 
+            class="form-control {% if form.title.errors %}is-invalid{% endif %}" 
+            placeholder="e.g. Maintenance & Troubleshooting Guide - Spindle Drive" 
+            value="{{ form.title.value|default:'' }}" 
+            required
+          >
+          {% if form.title.errors %}
+            <div class="form-error-msg">
+              {% for error in form.title.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- PDF Drag-and-Drop Ingestion Zone -->
+        <div class="form-group" style="margin-top: var(--space-3);">
+          <label class="form-label">
+            Source PDF File
+            <span class="required-mark">*</span>
+          </label>
+
+          <div 
+            class="upload-dropzone" 
+            id="manualDropzone" 
+            data-input-id="id_pdf_file" 
+            data-preview-id="pdfPreviewStrip"
+            onclick="document.getElementById('id_pdf_file').click();"
+          >
+            <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="12" y1="18" x2="12" y2="12"></line>
+              <line x1="9" y1="15" x2="15" y2="15"></line>
+            </svg>
+            <div class="upload-title">Choose manual PDF or drag and drop here</div>
+            <div class="upload-subtitle">Supported format: PDF only &middot; Maximum size: 20 MB</div>
+          </div>
+
+          <input 
+            type="file" 
+            name="pdf_file" 
+            id="id_pdf_file" 
+            accept="application/pdf" 
+            style="display: none;" 
+            required
+          >
+
+          <div class="file-preview-strip" id="pdfPreviewStrip">
+            <div class="file-preview-info">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
+              <div>
+                <strong class="file-name-text" style="font-size: var(--fs-base); color: var(--text-main);">document.pdf</strong>
+                <span class="file-size-tag" style="margin-left: 8px;">0.00 MB</span>
+              </div>
+            </div>
+            <button type="button" class="btn btn-ghost btn-sm file-remove-btn" style="color: var(--status-danger-text);">
+              Change File
+            </button>
+          </div>
+
+          {% if form.pdf_file.errors %}
+            <div class="form-error-msg">
+              {% for error in form.pdf_file.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+
+          <div class="progress-bar-container">
+            <div class="progress-bar-fill"></div>
+          </div>
+        </div>
+
+        <!-- Ingestion Pipeline Informational Notice -->
+        <div class="status-callout-notice" style="background-color: var(--raised); border: 1px solid var(--border); margin-top: var(--space-4);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent); flex-shrink: 0; margin-top: 1px;">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+          <div style="font-size: var(--fs-xs); color: var(--text-muted); line-height: 1.5;">
+            <strong>Automated Ingestion Pipeline:</strong> Upon submission, the PDF is parsed using PyPDF/PDFPlumber, cleaned, segmented into semantic text chunks with page citations, embedded via Google Gemini Embeddings, and indexed into the local ChromaDB vector store.
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-footer">
+        <a href="{{ manual_list_url|default:'/manuals/' }}" class="btn btn-secondary">
+          Cancel
+        </a>
+        <button type="submit" class="btn btn-primary">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="16 16 12 12 8 16"></polyline>
+            <line x1="12" y1="12" x2="12" y2="21"></line>
+            <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path>
+          </svg>
+          Upload & Index Manual
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

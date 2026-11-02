@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Supervisor Audit Log &middot; MMA Industrial{% endblock %}
+
+{% block current_breadcrumb %}Supervisor Audit Log{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-title-block">
+    <h1 class="page-h1">Maintenance Question Audit Log</h1>
+    <p class="page-subtitle">Read-only supervision log of all shopfloor engineering queries, AI answers, and citation statuses</p>
+  </div>
+</div>
+
+<!-- Supervision Filter Toolbar -->
+<div class="panel" style="margin-bottom: var(--space-5);">
+  <div class="panel-body" style="padding: var(--space-4);">
+    <form method="get" action="" style="display: flex; gap: var(--space-3); align-items: flex-end; flex-wrap: wrap;">
+      <div class="form-group" style="margin-bottom: 0; min-width: 200px; flex: 1;">
+        <label for="filterMachine" class="form-label" style="font-size: var(--fs-xs);">Filter by Machine</label>
+        <select name="machine" id="filterMachine" class="form-control" style="height: 34px;">
+          <option value="">All Equipment Fleet</option>
+          {% for machine in machines %}
+            <option value="{{ machine.id }}" {% if request.GET.machine == machine.id|stringformat:"s" %}selected{% endif %}>
+              {{ machine.name }} ({{ machine.model_number }})
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 0; min-width: 180px; flex: 1;">
+        <label for="filterStatus" class="form-label" style="font-size: var(--fs-xs);">Answer Verification Status</label>
+        <select name="status" id="filterStatus" class="form-control" style="height: 34px;">
+          <option value="">All Verification States</option>
+          <option value="answered" {% if request.GET.status == "answered" %}selected{% endif %}>Fully Answered</option>
+          <option value="insufficient_information" {% if request.GET.status == "insufficient_information" or request.GET.status == "insufficient" %}selected{% endif %}>Insufficient Information</option>
+          <option value="conflicting_information" {% if request.GET.status == "conflicting_information" or request.GET.status == "conflicting" %}selected{% endif %}>Conflicting Information</option>
+        </select>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 0; min-width: 150px;">
+        <label for="filterDate" class="form-label" style="font-size: var(--fs-xs);">Logged Date</label>
+        <input 
+          type="date" 
+          name="date" 
+          id="filterDate" 
+          class="form-control" 
+          style="height: 34px;" 
+          value="{{ request.GET.date|default:'' }}"
+        >
+      </div>
+
+      <div style="display: flex; gap: var(--space-2);">
+        <button type="submit" class="btn btn-primary btn-sm" style="height: 34px; padding: 0 var(--space-4);">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+          </svg>
+          Filter
+        </button>
+        {% if request.GET.machine or request.GET.status or request.GET.date %}
+          <a href="?" class="btn btn-secondary btn-sm" style="height: 34px;">
+            Reset
+          </a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Read-Only Audit Table -->
+<div class="panel">
+  <div class="panel-header">
+    <div class="panel-title-block">
+      <h2 class="panel-title">Engineering Inquiry Records</h2>
+      <span class="panel-caption">
+        Read-only audit stream &middot; Edit and deletion actions disabled
+      </span>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table" aria-label="Supervisor Read-Only Inquiries">
+      <thead>
+        <tr>
+          <th>Field Engineer</th>
+          <th>Machine Fleet Spec</th>
+          <th>Maintenance Question</th>
+          <th>Verification Status</th>
+          <th class="num">Logged Date &amp; Time</th>
+          <th style="text-align: right;">Audit Inspection</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in questions %}
+          <tr>
+            <td>
+              <strong style="color: var(--text-main);">
+                {% firstof item.user.get_full_name item.user.username "Field Engineer" %}
+              </strong>
+              <span class="table-subtext">{{ item.user.email|default:"field.station" }}</span>
+            </td>
+            <td>
+              <span>{{ item.machine.name }}</span>
+              <span class="table-subtext">{{ item.machine.model_number }}</span>
+            </td>
+            <td style="max-width: 320px;">
+              <span style="color: var(--text-main); font-weight: 500;">{{ item.question }}</span>
+            </td>
+            <td>
+              {% include "includes/status_badge.html" with status=item.answer_status %}
+            </td>
+            <td class="num">
+              <span class="table-code">{{ item.created_at|date:"Y-m-d H:i" }}</span>
+            </td>
+            <td style="text-align: right;">
+              {% url 'answer_detail' item.id as ans_detail_url %}
+              <a href="{{ ans_detail_url|default:'/assistant/answer/' }}{% if not ans_detail_url %}{{ item.id }}/{% endif %}" class="btn btn-secondary btn-sm" title="View answer details and citations">
+                Inspect Evidence &rarr;
+              </a>
+            </td>
+          </tr>
+        {% empty %}
+          <tr class="table-empty-row">
+            <td colspan="6">
+              No engineering questions match the selected filter criteria.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if page_obj %}
+    <div style="padding: 0 var(--space-5) var(--space-4);">
+      {% include "includes/pagination.html" with page_obj=page_obj %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
