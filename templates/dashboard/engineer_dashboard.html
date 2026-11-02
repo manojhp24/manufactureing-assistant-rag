@@ -9,12 +9,24 @@
 {% url 'assistant_chat' as assistant_chat_url %}
 {% url 'assistant_history' as assistant_history_url %}
 
-<div class="page-header">
+<div class="page-header" style="flex-wrap: wrap; gap: var(--space-3);">
   <div class="page-header-title-block">
-    <h1 class="page-h1">Maintenance Engineering Terminal</h1>
+    <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;">
+      <h1 class="page-h1">Maintenance Engineering Terminal</h1>
+      <div class="telemetry-pulse" title="Field terminal operational telemetry">
+        <span class="pulse-indicator"></span>
+        <span id="telemetrySyncTime">Fleet Synced</span>
+      </div>
+    </div>
     <p class="page-subtitle">Equipment diagnostics, AI-assisted troubleshooting, and verified manual citations</p>
   </div>
-  <div class="page-actions">
+  <div class="page-actions" style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap;">
+    <button type="button" class="btn-refresh" id="syncTelemetryBtn" title="Sync latest dashboard telemetry via partial fetch">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+      </svg>
+      Sync
+    </button>
     <a href="{{ assistant_chat_url|default:'/assistant/chat/' }}" class="btn btn-primary">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
@@ -25,8 +37,8 @@
 </div>
 
 <!-- Operator Context Banner (Professional Industrial Welcome) -->
-<div class="panel" style="background-color: var(--surface); border-left: 3px solid var(--accent);">
-  <div class="panel-body" style="padding: var(--space-5);">
+<div class="panel" style="background-color: var(--surface); border-left: 3px solid var(--accent); margin-bottom: var(--space-5);">
+  <div class="panel-body" style="padding: var(--space-4) var(--space-5);">
     <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); flex-wrap: wrap;">
       <div>
         <div style="font-size: var(--fs-md); font-weight: 600; color: var(--text-main);">
@@ -85,36 +97,56 @@
 </div>
 
 <!-- Machine Fleet Quick Launch Grid -->
-<div class="panel">
-  <div class="panel-header">
+<div class="panel" style="margin-bottom: var(--space-5);">
+  <div class="panel-header" style="flex-wrap: wrap; gap: var(--space-3); justify-content: space-between;">
     <div class="panel-title-block">
       <h2 class="panel-title">Equipment Quick Selection</h2>
       <span class="panel-caption">Launch direct AI assistant inquiry isolated to machine documentation</span>
     </div>
+
+    <!-- Live Fleet Search Input -->
+    <div class="search-input-wrapper" style="max-width: 320px;">
+      <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input 
+        type="text" 
+        id="dashboardSearchInput" 
+        placeholder="Filter equipment by model or name..." 
+        autocomplete="off"
+      >
+      <span class="search-shortcut">/</span>
+    </div>
   </div>
+
   <div class="panel-body" style="padding: var(--space-5);">
-    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--space-4);">
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--space-4);" id="engineerFleetGrid">
       {% for machine in machines %}
-        <div style="border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-4); background-color: var(--surface); display: flex; flex-direction: column; justify-content: space-between; gap: var(--space-3);">
+        <div class="machine-fleet-card" style="border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-4); background-color: var(--surface); display: flex; flex-direction: column; justify-content: space-between; gap: var(--space-3);">
           <div>
             <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-2);">
-              <h3 style="font-size: var(--fs-base); font-weight: 600; color: var(--text-main);">{{ machine.name }}</h3>
+              <h3 class="machine-card-title" style="font-size: var(--fs-base); font-weight: 600; color: var(--text-main);">{{ machine.name }}</h3>
               {% if machine.is_active %}
                 <span class="badge badge-indexed" style="font-size: 10px;">Ready</span>
               {% else %}
                 <span class="badge badge-inactive" style="font-size: 10px;">Offline</span>
               {% endif %}
             </div>
-            <div class="table-code" style="margin-top: 2px;">{{ machine.model_number }}</div>
-            <p style="font-size: var(--fs-xs); color: var(--text-muted); margin-top: var(--space-2); line-height: 1.4;">
+            <div class="table-code" style="margin-top: 4px; display: inline-block;">{{ machine.model_number }}</div>
+            <p class="machine-card-desc" style="font-size: var(--fs-xs); color: var(--text-muted); margin-top: var(--space-2); line-height: 1.4;">
               {{ machine.description|default:"Standard operating plant unit"|truncatechars:70 }}
             </p>
           </div>
           <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border-subtle); padding-top: var(--space-3); margin-top: var(--space-1);">
-            <span style="font-size: 11px; color: var(--text-faint); font-family: var(--font-mono);">
+            <span style="font-size: 11px; color: var(--text-faint); font-family: var(--font-mono); display: inline-flex; align-items: center; gap: 4px;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
               {{ machine.manuals.count|default:"0" }} Manuals
             </span>
-            <a href="{{ assistant_chat_url|default:'/assistant/chat/' }}?machine_id={{ machine.id }}" class="btn btn-secondary btn-sm">
+            <a href="{{ assistant_chat_url|default:'/assistant/chat/' }}?machine_id={{ machine.id }}" class="btn btn-secondary btn-sm" title="Launch diagnostic session with {{ machine.name }}">
               Ask Assistant &rarr;
             </a>
           </div>
@@ -125,13 +157,17 @@
         </div>
       {% endfor %}
     </div>
+
+    <div id="fleetSearchEmptyNotice" style="display: none; text-align: center; color: var(--text-faint); padding: var(--space-6);">
+      No equipment matches your search query. Press Esc to reset.
+    </div>
   </div>
 </div>
 
 <!-- Two-Column Operational Layout: Recent Questions + Diagnostic Activity -->
 <div style="display: grid; grid-template-columns: 2fr 1fr; gap: var(--space-5);" class="engineer-grid">
   <!-- Recent Questions Table -->
-  <div class="panel">
+  <div class="panel" id="engineerRecentQueries">
     <div class="panel-header">
       <div class="panel-title-block">
         <h2 class="panel-title">My Recent Maintenance Queries</h2>
@@ -143,7 +179,7 @@
     </div>
 
     <div class="table-responsive">
-      <table class="table" aria-label="Recent Queries">
+      <table class="table" aria-label="Recent Queries" data-filterable-table>
         <thead>
           <tr>
             <th>Question</th>
@@ -161,7 +197,7 @@
               </td>
               <td>
                 <span>{{ query.machine.name }}</span>
-                <span class="table-subtext">{{ query.machine.model_number }}</span>
+                <span class="table-subtext table-code" style="display: block; font-size: 11px;">{{ query.machine.model_number }}</span>
               </td>
               <td>
                 {% include "includes/status_badge.html" with status=query.answer_status %}
@@ -186,6 +222,11 @@
               </td>
             </tr>
           {% endfor %}
+          <tr class="table-search-empty-row" style="display: none;">
+            <td colspan="5" style="text-align: center; color: var(--text-faint); padding: var(--space-5);">
+              No past inquiries match your search.
+            </td>
+          </tr>
         </tbody>
       </table>
     </div>
@@ -196,19 +237,38 @@
     <div class="panel-header">
       <div class="panel-title-block">
         <h2 class="panel-title">Terminal Quick Actions</h2>
+        <span class="panel-caption">One-click diagnostic prompts</span>
       </div>
     </div>
     <div class="panel-body" style="padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3);">
       <div style="font-size: var(--fs-xs); color: var(--text-muted); line-height: 1.5;">
         Common field queries for immediate troubleshooting:
       </div>
-      <button type="button" class="btn btn-secondary btn-sm" style="text-align: left; justify-content: flex-start; height: auto; padding: var(--space-2) var(--space-3);" data-prompt="What is the recommended spindle lubrication interval and lubricant specification?">
+      <button 
+        type="button" 
+        class="btn btn-secondary btn-sm" 
+        style="text-align: left; justify-content: flex-start; height: auto; padding: var(--space-2) var(--space-3); line-height: 1.4;" 
+        data-prompt="What is the recommended spindle lubrication interval and lubricant specification?"
+        data-chat-url="{{ assistant_chat_url|default:'/assistant/chat/' }}"
+      >
         &bull; Spindle lubrication spec &amp; interval
       </button>
-      <button type="button" class="btn btn-secondary btn-sm" style="text-align: left; justify-content: flex-start; height: auto; padding: var(--space-2) var(--space-3);" data-prompt="How do I troubleshoot Error Code E-204 (Hydraulic pressure drop)?">
+      <button 
+        type="button" 
+        class="btn btn-secondary btn-sm" 
+        style="text-align: left; justify-content: flex-start; height: auto; padding: var(--space-2) var(--space-3); line-height: 1.4;" 
+        data-prompt="How do I troubleshoot Error Code E-204 (Hydraulic pressure drop)?"
+        data-chat-url="{{ assistant_chat_url|default:'/assistant/chat/' }}"
+      >
         &bull; Troubleshoot Error Code E-204 (Hydraulic)
       </button>
-      <button type="button" class="btn btn-secondary btn-sm" style="text-align: left; justify-content: flex-start; height: auto; padding: var(--space-2) var(--space-3);" data-prompt="What are the emergency stop reset procedures and safety interlock checks?">
+      <button 
+        type="button" 
+        class="btn btn-secondary btn-sm" 
+        style="text-align: left; justify-content: flex-start; height: auto; padding: var(--space-2) var(--space-3); line-height: 1.4;" 
+        data-prompt="What are the emergency stop reset procedures and safety interlock checks?"
+        data-chat-url="{{ assistant_chat_url|default:'/assistant/chat/' }}"
+      >
         &bull; Emergency stop reset &amp; interlock checks
       </button>
       <div style="border-top: 1px solid var(--border-subtle); padding-top: var(--space-3); margin-top: var(--space-2);">
@@ -219,4 +279,8 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/dashboard.js' %}"></script>
 {% endblock %}

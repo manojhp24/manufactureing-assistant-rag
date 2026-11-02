@@ -54,10 +54,20 @@
         <div class="panel-title-block">
           <h2 class="panel-title">RAG Generated Technical Response</h2>
         </div>
-        <span class="badge badge-neutral">AI-generated response</span>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="badge badge-indexed" style="font-size: 10px;">Grounded in Manual</span>
+          <button type="button" class="btn-copy-answer" data-target="rawAnswer_1" title="Copy full response to clipboard">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            Copy Procedure
+          </button>
+        </div>
       </div>
       <div class="panel-body">
-        <div class="ai-answer-text">{{ query.answer|linebreaksbr }}</div>
+        <textarea class="ai-answer-raw" id="rawAnswer_1" style="display: none;">{{ query.answer }}</textarea>
+        <div class="tech-answer-formatted">{{ query.answer|linebreaksbr }}</div>
 
         {% if query.status == "insufficient" or query.status == "insufficient_information" %}
           <div class="status-callout-notice warning">
@@ -119,6 +129,20 @@
                 </a>
               </div>
             {% endif %}
+            {% if citation.document_id and citation.page_number %}
+              <div class="evidence-action-row">
+                <a href="{% url 'citation_pdf' query.id forloop.counter0 %}#page={{ citation.page_number }}"
+                   target="_blank" rel="noopener"
+                   class="btn btn-secondary btn-sm"
+                   title="Open cited PDF page with text passage highlighted">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                  </svg>
+                  View Highlighted Citation
+                </a>
+              </div>
+            {% endif %}
           </div>
         {% empty %}
           <div style="color:var(--text-faint);font-size:var(--fs-sm);text-align:center;padding:var(--space-6) 0;">
@@ -129,4 +153,8 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/assistant_chat.js' %}"></script>
 {% endblock %}

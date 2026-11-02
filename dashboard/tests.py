@@ -109,9 +109,9 @@ class DashboardViewTests(TestCase):
 
         # HTML KPI checks
         self.assertContains(response, "Registered Machines")
-        self.assertContains(response, "Total Manuals")
-        self.assertContains(response, "Indexed into ChromaDB")
-        self.assertContains(response, "Indexing Failures")
+        self.assertContains(response, "Ingested Manuals")
+        self.assertContains(response, "ChromaDB Chunks")
+        self.assertContains(response, "Pipeline Reliability")
         self.assertContains(response, "AC90 Maintenance Manual")
 
     def test_supervisor_dashboard_kpis_and_context(self):

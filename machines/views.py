@@ -77,6 +77,8 @@ def machine_create(request):
     else:
         form = MachineForm()
 
+    recent_machines = Machine.objects.order_by("-created_at")[:5]
+
     return render(
         request,
         "machines/machine_form.html",
@@ -84,6 +86,7 @@ def machine_create(request):
             "form": form,
             "title": "Register Machine",
             "machine": None,
+            "recent_machines": recent_machines,
         },
     )
 
@@ -108,6 +111,8 @@ def machine_edit(request, pk):
     else:
         form = MachineForm(instance=machine)
 
+    recent_machines = Machine.objects.exclude(pk=machine.pk).order_by("-created_at")[:5]
+
     return render(
         request,
         "machines/machine_form.html",
@@ -115,6 +120,7 @@ def machine_edit(request, pk):
             "form": form,
             "title": "Edit Machine",
             "machine": machine,
+            "recent_machines": recent_machines,
         },
     )
 

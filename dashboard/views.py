@@ -1,3 +1,4 @@
+from django.db import models
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 
@@ -39,6 +40,9 @@ def admin_dashboard(request):
     Supplies fleet counts, PDF ingestion pipeline health, and system-wide activity metrics.
     """
     total_machines = Machine.objects.count()
+    active_machines = Machine.objects.filter(is_active=True).count()
+    inactive_machines = total_machines - active_machines
+
     total_manuals = Manual.objects.count()
     indexed_manuals = Manual.objects.filter(
         indexing_status=Manual.IndexingStatus.INDEXED
@@ -46,6 +50,20 @@ def admin_dashboard(request):
     failed_manuals = Manual.objects.filter(
         indexing_status=Manual.IndexingStatus.FAILED
     ).count()
+
+    manuals_agg = Manual.objects.aggregate(
+        total_pages_sum=models.Sum("total_pages"),
+        total_chunks_sum=models.Sum("total_chunks"),
+    )
+    total_pages_sum = manuals_agg["total_pages_sum"] or 0
+    total_chunks_sum = manuals_agg["total_chunks_sum"] or 0
+
+    if total_manuals > 0:
+        pipeline_health_pct = round(
+            ((total_manuals - failed_manuals) / total_manuals) * 100, 1
+        )
+    else:
+        pipeline_health_pct = 100.0
 
     recent_uploads = (
         Manual.objects.select_related("machine")
@@ -56,6 +74,7 @@ def admin_dashboard(request):
     recent_activity = []
     for manual in recent_uploads:
         recent_activity.append({
+            "type": "manual",
             "description": f"Manual Ingested: {manual.title} ({manual.machine.model_number})",
             "timestamp": manual.uploaded_at,
             "user": "System Ingestion",
@@ -67,6 +86,7 @@ def admin_dashboard(request):
     )
     for q in recent_inquiries:
         recent_activity.append({
+            "type": "inquiry",
             "description": f"Diagnosis Inquiry for {q.machine.name} ({q.machine.model_number})",
             "timestamp": q.created_at,
             "user": q.engineer.get_full_name() or q.engineer.username,
@@ -75,13 +95,32 @@ def admin_dashboard(request):
     recent_activity.sort(key=lambda item: item["timestamp"], reverse=True)
     recent_activity = recent_activity[:8]
 
+    # Fleet coverage breakdown (which machines have manuals)
+    fleet_coverage = []
+    for machine in Machine.objects.prefetch_related("manuals").all():
+        indexed_count = machine.manuals.filter(
+            indexing_status=Manual.IndexingStatus.INDEXED
+        ).count()
+        fleet_coverage.append({
+            "machine": machine,
+            "manuals_count": machine.manuals.count(),
+            "indexed_count": indexed_count,
+            "is_ready": indexed_count > 0,
+        })
+
     context = {
         "total_machines": total_machines,
+        "active_machines": active_machines,
+        "inactive_machines": inactive_machines,
         "total_manuals": total_manuals,
         "indexed_manuals": indexed_manuals,
         "failed_manuals": failed_manuals,
+        "total_pages_sum": total_pages_sum,
+        "total_chunks_sum": total_chunks_sum,
+        "pipeline_health_pct": pipeline_health_pct,
         "recent_uploads": recent_uploads,
         "recent_activity": recent_activity,
+        "fleet_coverage": fleet_coverage,
     }
     return render(request, "dashboard/admin_dashboard.html", context)
 

@@ -33,7 +33,8 @@ For a supported answer:
         {{
             "document_id": "HP-OPS-01",
             "revision": "1.0",
-            "page_number": 2
+            "page_number": 2,
+            "text_passage": "Exact supporting text from the manual page"
         }}
     ]
 }}

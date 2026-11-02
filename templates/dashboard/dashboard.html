@@ -1,12 +1,15 @@
 {% extends "base.html" %}
 
-{% block content %}
-  {% if user.is_superuser or user_role == "administrator" or user_role == "admin" or "Administrator" in user.groups.all|stringformat:"s" %}
-    {% include "dashboard/admin_dashboard.html" %}
-  {% elif user_role == "supervisor" or "Supervisor" in user.groups.all|stringformat:"s" %}
-    {% include "dashboard/supervisor_dashboard.html" %}
-  {% else %}
-    {% include "dashboard/engineer_dashboard.html" %}
-  {% endif %}
-{% endblock %}
+{% block title %}Operations Dashboard &middot; MMA Industrial{% endblock %}
+{% block current_breadcrumb %}Dashboard{% endblock %}
 
+{% block content %}
+<div class="panel" style="padding: var(--space-8); text-align: center;">
+  <p style="color: var(--text-muted); font-size: var(--fs-base);">
+    Redirecting to your dedicated role terminal...
+  </p>
+  <div style="margin-top: var(--space-4);">
+    <a href="{% url 'dashboard' %}" class="btn btn-primary btn-sm">Enter Dashboard</a>
+  </div>
+</div>
+{% endblock %}

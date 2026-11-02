@@ -8,12 +8,24 @@
 {% block content %}
 {% url 'supervisor_history' as supervisor_history_url %}
 
-<div class="page-header">
+<div class="page-header" style="flex-wrap: wrap; gap: var(--space-3);">
   <div class="page-header-title-block">
-    <h1 class="page-h1">Plant Supervision &amp; Audit Dashboard</h1>
+    <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;">
+      <h1 class="page-h1">Plant Supervision &amp; Audit Dashboard</h1>
+      <div class="telemetry-pulse" title="Plant-wide audit oversight telemetry">
+        <span class="pulse-indicator"></span>
+        <span id="telemetrySyncTime">Audit Stream Live</span>
+      </div>
+    </div>
     <p class="page-subtitle">Plant-wide maintenance inquiry oversight, knowledge coverage auditing, and machine query distribution</p>
   </div>
-  <div class="page-actions">
+  <div class="page-actions" style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap;">
+    <button type="button" class="btn-refresh" id="syncTelemetryBtn" title="Sync latest dashboard telemetry via partial fetch">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+      </svg>
+      Sync
+    </button>
     <a href="{{ supervisor_history_url|default:'/assistant/supervisor/history/' }}" class="btn btn-secondary">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M2 12h20"></path>
@@ -27,7 +39,7 @@
 </div>
 
 <!-- Supervisor KPI Strip -->
-<div class="kpi-strip" role="region" aria-label="Supervisor Metrics">
+<div class="kpi-strip" role="region" aria-label="Supervisor Metrics" style="margin-bottom: var(--space-6);">
   <div class="kpi-cell">
     <span class="kpi-label">Total Inquiries Logged</span>
     <div class="kpi-value-row">
@@ -59,16 +71,33 @@
   <div class="kpi-cell">
     <span class="kpi-label">Knowledge Coverage Ratio</span>
     <div class="kpi-value-row">
-      <span class="kpi-value num">{{ coverage_ratio|default:"98.2" }}%</span>
+      <span class="kpi-value num">{{ coverage_ratio|default:"100.0" }}%</span>
     </div>
     <span class="kpi-subtext positive">Retrieval confidence score</span>
+  </div>
+</div>
+
+<!-- Search Bar for Equipment Activity -->
+<div class="dashboard-filter-bar">
+  <div class="search-input-wrapper">
+    <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="8"></circle>
+      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+    </svg>
+    <input 
+      type="text" 
+      id="dashboardSearchInput" 
+      placeholder="Filter equipment breakdown or inquiries... (press /)" 
+      autocomplete="off"
+    >
+    <span class="search-shortcut">/</span>
   </div>
 </div>
 
 <!-- Two-Column Operational Layout: Machine Activity Breakdown + Recent Questions -->
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-5);" class="supervisor-grid">
   <!-- Machine-Wise Question Activity Panel -->
-  <div class="panel">
+  <div class="panel" id="supervisorMachineActivity">
     <div class="panel-header">
       <div class="panel-title-block">
         <h2 class="panel-title">Equipment Query Distribution</h2>
@@ -77,7 +106,7 @@
     </div>
 
     <div class="table-responsive">
-      <table class="table" aria-label="Machine Query Activity">
+      <table class="table" aria-label="Machine Query Activity" data-filterable-table>
         <thead>
           <tr>
             <th>Machine</th>
@@ -103,8 +132,8 @@
                 <span class="num" style="color: var(--status-success-text);">{{ item.answered_count|default:"0" }}</span>
               </td>
               <td class="num">
-                <span class="num" {% if item.unanswered_count and item.unanswered_count > 0 %}style="color: var(--status-warning-text);"{% endif %}>
-                  {{ item.unanswered_count|default:"0" }}
+                <span class="num" {% if item.insufficient_count and item.insufficient_count > 0 %}style="color: var(--status-warning-text);"{% endif %}>
+                  {{ item.insufficient_count|default:"0" }}
                 </span>
               </td>
             </tr>
@@ -115,6 +144,11 @@
               </td>
             </tr>
           {% endfor %}
+          <tr class="table-search-empty-row" style="display: none;">
+            <td colspan="5" style="text-align: center; color: var(--text-faint); padding: var(--space-5);">
+              No equipment matches your search filter.
+            </td>
+          </tr>
         </tbody>
       </table>
     </div>
@@ -133,7 +167,7 @@
     </div>
 
     <div class="table-responsive">
-      <table class="table" aria-label="Recent Supervised Questions">
+      <table class="table" aria-label="Recent Supervised Questions" data-filterable-table>
         <thead>
           <tr>
             <th>Question</th>
@@ -145,14 +179,15 @@
         <tbody>
           {% for query in recent_questions %}
             <tr>
-              <td style="max-width: 200px;">
+              <td style="max-width: 220px;">
                 {% url 'answer_detail' query.id as ans_detail_url %}
-                <a href="{{ ans_detail_url|default:'/assistant/answer/' }}{% if not ans_detail_url %}{{ query.id }}/{% endif %}" style="color: var(--text-main); font-weight: 500;">
+                <a href="{{ ans_detail_url|default:'/assistant/answer/' }}{% if not ans_detail_url %}{{ query.id }}/{% endif %}" style="color: var(--text-main); font-weight: 500;" title="Inspect answer details and citations">
                   {{ query.question|truncatechars:50 }}
                 </a>
               </td>
               <td>
-                <span style="font-size: var(--fs-xs);">{{ query.machine.name }}</span>
+                <span style="font-size: var(--fs-xs); display: block;">{{ query.machine.name }}</span>
+                <span class="table-subtext table-code" style="font-size: 11px;">{{ query.machine.model_number }}</span>
               </td>
               <td>
                 {% include "includes/status_badge.html" with status=query.answer_status %}
@@ -168,9 +203,18 @@
               </td>
             </tr>
           {% endfor %}
+          <tr class="table-search-empty-row" style="display: none;">
+            <td colspan="4" style="text-align: center; color: var(--text-faint); padding: var(--space-5);">
+              No inquiries match your search filter.
+            </td>
+          </tr>
         </tbody>
       </table>
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/dashboard.js' %}"></script>
 {% endblock %}

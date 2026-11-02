@@ -3,68 +3,102 @@
 
 {% block title %}Ingest PDF Manual &middot; MMA Industrial{% endblock %}
 
-{% block current_breadcrumb %}Upload Manual{% endblock %}
+{% block current_breadcrumb %}Upload Technical Manual{% endblock %}
 
 {% block content %}
 {% url 'upload_manual' as upload_manual_url %}
 {% url 'manual_list' as manual_list_url %}
+{% url 'machine_create' as machine_create_url %}
 
-<div class="page-header">
+<div class="page-header" style="flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-4);">
   <div class="page-header-title-block">
-    <h1 class="page-h1">Ingest Technical PDF Manual</h1>
-    <p class="page-subtitle">Upload maintenance manuals, schematics, and technical specifications for RAG chunking and vector embedding</p>
+    <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;">
+      <h1 class="page-h1">Ingest Technical PDF Manual</h1>
+      <span class="badge badge-neutral" style="font-family: var(--font-mono); font-size: 11px;">
+        Pipeline: ChromaDB + Gemini 1024d
+      </span>
+    </div>
+    <p class="page-subtitle">Extract, chunk, and index maintenance specifications into isolated vector collections</p>
+  </div>
+  <div class="page-actions">
+    <a href="{{ manual_list_url|default:'/manuals/' }}" class="btn btn-secondary">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12 19 5 12 12 5"></polyline>
+      </svg>
+      Fleet Manuals Registry
+    </a>
   </div>
 </div>
 
-<div style="max-width: 760px;">
+<!-- Two-Column Operational Layout: Upload Parameters Form + Live Knowledge Base Preview -->
+<div class="upload-two-column-layout">
+  <!-- Left Column: Document Upload Parameters -->
   <div class="panel">
     <div class="panel-header">
       <div class="panel-title-block">
-        <h2 class="panel-title">Document Metadata & Ingestion Parameters</h2>
+        <h2 class="panel-title">Document Specifications &amp; Source File</h2>
+        <span class="panel-caption">Parameters required for isolated RAG vector citations</span>
       </div>
-      <span class="badge badge-neutral">Pipeline: ChromaDB + Gemini Embeddings</span>
     </div>
 
-    <form method="post" action="{{ upload_manual_url|default:'/manuals/upload/' }}" enctype="multipart/form-data" class="upload-form" novalidate>
+    <form method="post" action="{{ upload_manual_url|default:'/manuals/upload/' }}" enctype="multipart/form-data" id="manualUploadForm" novalidate>
       {% csrf_token %}
 
-      <div class="panel-body">
+      <div class="panel-body" style="padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-4);">
         {% if form.non_field_errors %}
-          <div class="alert alert-error" style="margin-bottom: var(--space-4);">
+          <div class="alert alert-error">
+            <svg class="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
             <div class="alert-content">
               {% for error in form.non_field_errors %}{{ error }}{% endfor %}
             </div>
           </div>
         {% endif %}
 
+        <!-- Target Machinery Fleet -->
         <div class="form-group">
-          <label for="id_machine" class="form-label">
-            Target Machinery Fleet
-            <span class="required-mark">*</span>
+          <label for="id_machine" class="form-label" style="font-weight: 600; display: flex; align-items: center; justify-content: space-between;">
+            <span>
+              Target Machinery Fleet
+              <span class="required-mark" style="color: var(--status-danger-text);">*</span>
+            </span>
+            <span class="badge badge-neutral" style="font-size: 10px; font-family: var(--font-mono);">
+              Isolated Partition
+            </span>
           </label>
+          
           {% if form.machine %}
             {{ form.machine }}
           {% else %}
-            <select name="machine" id="id_machine" class="form-control" required>
-              <option value="">&mdash; Select Target Machine &mdash;</option>
+            <select name="machine" id="id_machine" class="form-control" required style="height: 38px;">
+              <option value="">&mdash; Select Target Machinery Fleet &mdash;</option>
               {% for machine in machines %}
                 <option value="{{ machine.id }}">{{ machine.name }} ({{ machine.model_number }})</option>
               {% endfor %}
             </select>
           {% endif %}
-          <span class="form-help">Queries are strictly isolated to the selected machine's manual corpus.</span>
+          
+          <span class="form-help">
+            RAG queries submitted by field engineers are strictly isolated to the selected machine's corpus.
+          </span>
           {% if form.machine.errors %}
-            <div class="form-error-msg">
+            <div class="form-error-msg" style="color: var(--status-danger-text); font-size: 11px; margin-top: 3px;">
               {% for error in form.machine.errors %}{{ error }}{% endfor %}
             </div>
           {% endif %}
         </div>
 
+        <!-- Document ID & Revision Grid -->
         <div style="display: grid; grid-template-columns: 2fr 1fr; gap: var(--space-4);">
+          <!-- Document Identifier (Doc ID) -->
           <div class="form-group">
-            <label for="id_document_id" class="form-label">
-              Document Identifier (Doc ID)
-              <span class="required-mark">*</span>
+            <label for="id_document_id" class="form-label" style="font-weight: 600;">
+              Document ID (Doc ID)
+              <span class="required-mark" style="color: var(--status-danger-text);">*</span>
             </label>
             <input 
               type="text" 
@@ -74,42 +108,46 @@
               placeholder="e.g. MAN-DMG-5000-ELEC" 
               value="{{ form.document_id.value|default:'' }}" 
               required
+              style="height: 38px; font-family: var(--font-mono); text-transform: uppercase;"
             >
-            <span class="form-help">Unique manufacturing document code.</span>
+            <span class="form-help">Unique manual code used in AI response citations.</span>
             {% if form.document_id.errors %}
-              <div class="form-error-msg">
+              <div class="form-error-msg" style="color: var(--status-danger-text); font-size: 11px; margin-top: 3px;">
                 {% for error in form.document_id.errors %}{{ error }}{% endfor %}
               </div>
             {% endif %}
           </div>
 
+          <!-- Revision Code -->
           <div class="form-group">
-            <label for="id_revision" class="form-label">
-              Revision Code
-              <span class="required-mark">*</span>
+            <label for="id_revision" class="form-label" style="font-weight: 600;">
+              Revision
+              <span class="required-mark" style="color: var(--status-danger-text);">*</span>
             </label>
             <input 
               type="text" 
               name="revision" 
               id="id_revision" 
               class="form-control {% if form.revision.errors %}is-invalid{% endif %}" 
-              placeholder="e.g. 2.4B" 
-              value="{{ form.revision.value|default:'' }}" 
+              placeholder="e.g. 1.0" 
+              value="{{ form.revision.value|default:'1.0' }}" 
               required
+              style="height: 38px; font-family: var(--font-mono); text-transform: uppercase;"
             >
-            <span class="form-help">Document release / engineering revision.</span>
+            <span class="form-help">Release edition.</span>
             {% if form.revision.errors %}
-              <div class="form-error-msg">
+              <div class="form-error-msg" style="color: var(--status-danger-text); font-size: 11px; margin-top: 3px;">
                 {% for error in form.revision.errors %}{{ error }}{% endfor %}
               </div>
             {% endif %}
           </div>
         </div>
 
+        <!-- Descriptive Title -->
         <div class="form-group">
-          <label for="id_title" class="form-label">
+          <label for="id_title" class="form-label" style="font-weight: 600;">
             Manual Descriptive Title
-            <span class="required-mark">*</span>
+            <span class="required-mark" style="color: var(--status-danger-text);">*</span>
           </label>
           <input 
             type="text" 
@@ -119,38 +157,68 @@
             placeholder="e.g. Maintenance & Troubleshooting Guide - Spindle Drive" 
             value="{{ form.title.value|default:'' }}" 
             required
+            style="height: 38px;"
           >
+          <span class="form-help">Recognizable manual name displayed in technical references.</span>
           {% if form.title.errors %}
-            <div class="form-error-msg">
+            <div class="form-error-msg" style="color: var(--status-danger-text); font-size: 11px; margin-top: 3px;">
               {% for error in form.title.errors %}{{ error }}{% endfor %}
             </div>
           {% endif %}
         </div>
 
         <!-- PDF Drag-and-Drop Ingestion Zone -->
-        <div class="form-group" style="margin-top: var(--space-3);">
-          <label class="form-label">
-            Source PDF File
-            <span class="required-mark">*</span>
+        <div class="form-group" style="margin-top: var(--space-2);">
+          <label class="form-label" style="font-weight: 600; display: flex; align-items: center; justify-content: space-between;">
+            <span>
+              Source PDF Technical Document
+              <span class="required-mark" style="color: var(--status-danger-text);">*</span>
+            </span>
+            <span style="font-size: 11px; color: var(--text-faint); font-family: var(--font-mono);">
+              Max: 20 MB &middot; PDF only
+            </span>
           </label>
 
           <div 
             class="upload-dropzone" 
             id="manualDropzone" 
-            data-input-id="id_pdf_file" 
-            data-preview-id="pdfPreviewStrip"
-            onclick="document.getElementById('id_pdf_file').click();"
+            role="button"
+            tabindex="0"
+            aria-label="Upload PDF Manual Dropzone"
           >
-            <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <line x1="12" y1="18" x2="12" y2="12"></line>
-              <line x1="9" y1="15" x2="15" y2="15"></line>
-            </svg>
-            <div class="upload-title">Choose manual PDF or drag and drop here</div>
-            <div class="upload-subtitle">Supported format: PDF only &middot; Maximum size: 20 MB</div>
+            <div class="dropzone-prompt-content">
+              <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="12" y1="18" x2="12" y2="12"></line>
+                <line x1="9" y1="15" x2="15" y2="15"></line>
+              </svg>
+              <div class="upload-title">Choose manual PDF or drag and drop file here</div>
+              <div class="upload-subtitle">Native PDF manuals with selectable text layers recommended</div>
+            </div>
+
+            <div class="file-preview-strip" id="pdfPreviewStrip" style="width: 100%; box-sizing: border-box;">
+              <div class="file-preview-info">
+                <div style="width: 34px; height: 34px; border-radius: var(--radius-sm); background-color: var(--accent-subtle); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                  </svg>
+                </div>
+                <div style="text-align: left;">
+                  <strong id="previewFileName" style="font-size: var(--fs-sm); color: var(--text-main); display: block; word-break: break-all;">
+                    document.pdf
+                  </strong>
+                  <span id="previewFileSize" class="file-size-tag">0.00 MB</span>
+                </div>
+              </div>
+              <button type="button" class="btn btn-ghost btn-sm" id="removeFileBtn" style="color: var(--status-danger-text); font-size: 11px;">
+                Change File
+              </button>
+            </div>
           </div>
 
+          <!-- Hidden Native File Input -->
           <input 
             type="file" 
             name="pdf_file" 
@@ -160,60 +228,183 @@
             required
           >
 
-          <div class="file-preview-strip" id="pdfPreviewStrip">
-            <div class="file-preview-info">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <polyline points="14 2 14 8 20 8"></polyline>
-              </svg>
-              <div>
-                <strong class="file-name-text" style="font-size: var(--fs-base); color: var(--text-main);">document.pdf</strong>
-                <span class="file-size-tag" style="margin-left: 8px;">0.00 MB</span>
-              </div>
-            </div>
-            <button type="button" class="btn btn-ghost btn-sm file-remove-btn" style="color: var(--status-danger-text);">
-              Change File
-            </button>
-          </div>
-
           {% if form.pdf_file.errors %}
-            <div class="form-error-msg">
+            <div class="form-error-msg" style="color: var(--status-danger-text); font-size: 11px; margin-top: 4px;">
               {% for error in form.pdf_file.errors %}{{ error }}{% endfor %}
             </div>
           {% endif %}
 
-          <div class="progress-bar-container">
-            <div class="progress-bar-fill"></div>
-          </div>
-        </div>
-
-        <!-- Ingestion Pipeline Informational Notice -->
-        <div class="status-callout-notice" style="background-color: var(--raised); border: 1px solid var(--border); margin-top: var(--space-4);">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent); flex-shrink: 0; margin-top: 1px;">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="16" x2="12" y2="12"></line>
-            <line x1="12" y1="8" x2="12.01" y2="8"></line>
-          </svg>
-          <div style="font-size: var(--fs-xs); color: var(--text-muted); line-height: 1.5;">
-            <strong>Automated Ingestion Pipeline:</strong> Upon submission, the PDF is parsed using PyPDF/PDFPlumber, cleaned, segmented into semantic text chunks with page citations, embedded via Google Gemini Embeddings, and indexed into the local ChromaDB vector store.
+          <!-- Ingestion Feedback Progress Bar Container -->
+          <div class="progress-bar-container" id="uploadProgressContainer" style="margin-top: var(--space-3);">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+              <span id="progressStatusText" style="font-size: 11px; font-weight: 500; color: var(--accent);">
+                Initializing document ingestion...
+              </span>
+              <span style="font-size: 10px; font-family: var(--font-mono); color: var(--text-faint);">
+                Live Pipeline
+              </span>
+            </div>
+            <div style="height: 6px; background-color: var(--border); border-radius: var(--radius-pill); overflow: hidden;">
+              <div class="progress-bar-fill" id="uploadProgressFill" style="height: 100%; width: 10%; background-color: var(--accent); transition: width 0.3s ease;"></div>
+            </div>
           </div>
         </div>
       </div>
 
-      <div class="panel-footer">
+      <div class="panel-footer" style="padding: var(--space-4) var(--space-5); display: flex; align-items: center; justify-content: flex-end; gap: var(--space-3); border-top: 1px solid var(--border);">
         <a href="{{ manual_list_url|default:'/manuals/' }}" class="btn btn-secondary">
           Cancel
         </a>
-        <button type="submit" class="btn btn-primary">
+        <button type="submit" class="btn btn-primary" id="uploadSubmitBtn">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="16 16 12 12 8 16"></polyline>
             <line x1="12" y1="12" x2="12" y2="21"></line>
             <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path>
           </svg>
-          Upload & Index Manual
+          Upload &amp; Index Manual
         </button>
       </div>
     </form>
   </div>
+
+  <!-- Right Column: Live Knowledge Base Preview & Ingestion Pipeline Stages -->
+  <div style="display: flex; flex-direction: column; gap: var(--space-5);">
+    <!-- Live Knowledge Base Entry Preview -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title-block">
+          <h2 class="panel-title">Knowledge Base Entry</h2>
+          <span class="panel-caption">Real-time catalog representation</span>
+        </div>
+      </div>
+      <div class="panel-body" style="padding: var(--space-4);">
+        <div class="doc-preview-card" id="docPreviewCard">
+          <div>
+            <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-2);">
+              <h3 id="liveDocTitle" style="font-size: var(--fs-base); font-weight: 600; color: var(--text-main); margin-top: 2px; line-height: 1.35;">
+                Service &amp; Maintenance Manual Title
+              </h3>
+              <span class="badge badge-indexed" style="font-size: 10px; flex-shrink: 0;">Pending Ingest</span>
+            </div>
+
+            <!-- Doc Code & Revision Meta -->
+            <div style="display: flex; align-items: center; gap: var(--space-2); margin-top: 8px; flex-wrap: wrap;">
+              <span class="table-code" id="liveDocId">MAN-SPEC-001</span>
+              <span class="badge badge-neutral" id="liveRevision" style="font-family: var(--font-mono); font-size: 10px;">Rev 1.0</span>
+            </div>
+
+            <!-- Fleet Affiliation -->
+            <div style="margin-top: 10px; font-size: var(--fs-xs); color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+                <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+                <line x1="6" y1="6" x2="6.01" y2="6"></line>
+                <line x1="6" y1="18" x2="6.01" y2="18"></line>
+              </svg>
+              <span id="liveMachineTag" style="font-weight: 500; color: var(--text-main);">Unassigned Fleet</span>
+            </div>
+
+            <!-- Source File Info -->
+            <div style="margin-top: 6px; font-size: 11px; color: var(--text-faint); font-family: var(--font-mono);">
+              Source: <span id="liveFileTag">Awaiting PDF source upload...</span>
+            </div>
+          </div>
+
+          <!-- Semantic Partition Footer -->
+          <div style="border-top: 1px solid var(--border-subtle); padding-top: var(--space-3); margin-top: var(--space-1); display: flex; align-items: center; justify-content: space-between;">
+            <span style="font-size: 10px; color: var(--text-faint); font-family: var(--font-mono);">
+              Vector Partition:
+            </span>
+            <code id="livePartition" style="font-size: 10px; font-family: var(--font-mono); color: var(--accent); background-color: var(--raised); padding: 2px 6px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+              metadata.machine_id == "MODEL"
+            </code>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RAG Ingestion Pipeline Stepper -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title-block">
+          <h2 class="panel-title">Ingestion Pipeline Stages</h2>
+          <span class="panel-caption">Automated technical manual processing</span>
+        </div>
+      </div>
+      <div class="panel-body" style="padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-1);">
+        <div class="pipeline-step-item">
+          <div class="pipeline-step-num">1</div>
+          <div style="font-size: var(--fs-xs); line-height: 1.4;">
+            <strong style="color: var(--text-main); display: block;">PDF Layer Extraction</strong>
+            <span style="color: var(--text-muted);">Parses high-resolution text streams, maintenance tables, and page markers.</span>
+          </div>
+        </div>
+
+        <div class="pipeline-step-item">
+          <div class="pipeline-step-num">2</div>
+          <div style="font-size: var(--fs-xs); line-height: 1.4;">
+            <strong style="color: var(--text-main); display: block;">Semantic Chunking</strong>
+            <span style="color: var(--text-muted);">Segments content into 500-token chunks with 50-token contextual overlaps and exact page citations.</span>
+          </div>
+        </div>
+
+        <div class="pipeline-step-item">
+          <div class="pipeline-step-num">3</div>
+          <div style="font-size: var(--fs-xs); line-height: 1.4;">
+            <strong style="color: var(--text-main); display: block;">Gemini Vector Embeddings</strong>
+            <span style="color: var(--text-muted);">Generates 1024-dimension dense vector representations via <code style="font-family: var(--font-mono); color: var(--accent);">gemini-embedding-001</code>.</span>
+          </div>
+        </div>
+
+        <div class="pipeline-step-item">
+          <div class="pipeline-step-num">4</div>
+          <div style="font-size: var(--fs-xs); line-height: 1.4;">
+            <strong style="color: var(--text-main); display: block;">Isolated ChromaDB Storage</strong>
+            <span style="color: var(--text-muted);">Commits embeddings into local collections partitioned by equipment model for zero-hallucination diagnostic lookup.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Plant Manual Ingestions -->
+    {% if recent_manuals %}
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title-block">
+            <h2 class="panel-title">Recent Ingested Manuals</h2>
+            <span class="panel-caption">Latest documents in corpus</span>
+          </div>
+        </div>
+        <div class="panel-body" style="padding: var(--space-3); display: flex; flex-direction: column; gap: 6px;">
+          {% for rm in recent_manuals %}
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; border-radius: var(--radius-sm); background-color: var(--raised); border: 1px solid var(--border-subtle);">
+              <div style="min-width: 0; flex: 1; padding-right: var(--space-2);">
+                <div style="font-size: var(--fs-xs); font-weight: 500; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                  {{ rm.title }}
+                </div>
+                <div style="font-size: 10px; color: var(--text-faint); font-family: var(--font-mono); margin-top: 1px;">
+                  {{ rm.document_id }} &middot; {{ rm.machine.model_number }}
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+                <span class="table-code" style="font-size: 10px;">{{ rm.total_pages }}p</span>
+                {% if rm.indexing_status == 'indexed' %}
+                  <span class="badge badge-indexed" style="font-size: 9px; padding: 1px 5px;">Indexed</span>
+                {% elif rm.indexing_status == 'failed' %}
+                  <span class="badge badge-inactive" style="font-size: 9px; padding: 1px 5px;">Failed</span>
+                {% else %}
+                  <span class="badge badge-neutral" style="font-size: 9px; padding: 1px 5px;">Pending</span>
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/manual_upload.js' %}"></script>
 {% endblock %}

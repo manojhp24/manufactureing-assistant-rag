@@ -7,4 +7,5 @@ urlpatterns = [
     path("history/", views.history_view, name="assistant_history"),
     path("answer/<int:pk>/", views.answer_detail_view, name="answer_detail"),
     path("supervisor/history/", views.supervisor_history_view, name="supervisor_history"),
+    path("citation/<int:question_id>/<int:citation_index>/", views.citation_pdf_view, name="citation_pdf"),
 ]

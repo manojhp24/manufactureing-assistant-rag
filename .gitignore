@@ -8,6 +8,7 @@ __pycache__/
 .pytest_cache/
 
 storage/chroma_db/
+media/
 
 .DS_Store
 .agents

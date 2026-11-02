@@ -8,11 +8,17 @@
 {% block content %}
 {% url 'assistant_history' as assistant_history_url %}
 {% url 'assistant_chat' as assistant_chat_url %}
+{% url 'manual_list' as manual_list_url %}
 
-<div class="page-header" style="margin-bottom: 0;">
+<div class="page-header" style="margin-bottom: var(--space-4); flex-wrap: wrap; gap: var(--space-3);">
   <div class="page-header-title-block">
-    <h1 class="page-h1">AI Maintenance Assistant</h1>
-    <p class="page-subtitle">RAG grounded diagnostic guidance with verified PDF manual citations</p>
+    <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;">
+      <h1 class="page-h1">AI Maintenance Assistant</h1>
+      <span class="badge badge-neutral" style="font-family: var(--font-mono); font-size: 11px;">
+        RAG Isolation: ChromaDB + Gemini
+      </span>
+    </div>
+    <p class="page-subtitle">Diagnostic maintenance guidance grounded directly in manufacturer technical manuals</p>
   </div>
   <div class="page-actions">
     <a href="{{ assistant_history_url|default:'/assistant/history/' }}" class="btn btn-secondary btn-sm">
@@ -34,9 +40,9 @@
       <form method="get" action="{{ assistant_chat_url|default:'/assistant/chat/' }}" id="machineSelectForm" style="display: flex; align-items: center; gap: var(--space-3); flex: 1; flex-wrap: wrap;">
         <div class="chat-machine-selector-wrapper">
           <label for="machineSelector" style="font-size: var(--fs-xs); font-weight: 600; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.3px;">
-            Target Machine:
+            Target Equipment:
           </label>
-          <select name="machine_id" id="machineSelector" class="form-control" onchange="this.form.submit();">
+          <select name="machine_id" id="machineSelector" class="form-control" onchange="this.form.submit();" style="height: 34px; font-weight: 500;">
             <option value="">&mdash; Select Equipment Fleet &mdash;</option>
             {% for machine in machines %}
               <option value="{{ machine.id }}" {% if selected_machine and selected_machine.id == machine.id %}selected{% endif %}>
@@ -47,14 +53,23 @@
         </div>
 
         {% if selected_machine %}
-          <div style="display: flex; align-items: center; gap: var(--space-2); margin-left: auto;">
-            <span class="badge badge-indexed" title="Knowledge Base Ready">
+          <div style="display: flex; align-items: center; gap: var(--space-2); margin-left: auto; flex-wrap: wrap;">
+            <a href="{{ manual_list_url|default:'/manuals/' }}?machine={{ selected_machine.id }}" class="badge badge-indexed" style="text-decoration: none;" title="View ingested manuals for this equipment">
               <span class="badge-dot"></span>
-              {{ selected_machine.manuals.count|default:"0" }} Manuals Ingested
-            </span>
-            <span class="badge badge-neutral" style="font-family: var(--font-mono);">
+              {{ selected_machine.manuals.count|default:"0" }} Manuals Ingested &rarr;
+            </a>
+            <span class="table-code" style="font-size: 11px;">
               {{ selected_machine.model_number }}
             </span>
+          </div>
+        {% else %}
+          <div style="margin-left: auto; font-size: var(--fs-xs); color: var(--status-warning-text); display: flex; align-items: center; gap: 4px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            Select machinery to unlock diagnostic query input
           </div>
         {% endif %}
       </form>
@@ -64,7 +79,7 @@
     <div class="chat-messages-scroll" id="chatMessagesScroll">
       {% if conversation %}
         {% for item in conversation %}
-          <div class="chat-entry">
+          <div class="chat-entry" id="chatEntry_{{ item.id }}">
             <!-- Engineer Question Block -->
             <div class="user-question-block">
               <div class="chat-avatar-icon chat-avatar-user">
@@ -72,15 +87,17 @@
               </div>
               <div class="chat-entry-body">
                 <div class="chat-entry-meta">
-                  <span class="chat-speaker-name">{% firstof item.engineer.get_full_name item.engineer.username user.get_full_name user.username "Engineer" %}</span>
+                  <span class="chat-speaker-name">
+                    {% firstof item.engineer.get_full_name item.engineer.username user.get_full_name user.username "Engineer" %}
+                  </span>
                   <span class="chat-timestamp">{{ item.created_at|date:"Y-m-d H:i:s" }}</span>
                   {% if item.machine %}
                     <span class="badge badge-neutral" style="font-size: 10px; margin-left: auto;">
-                      {{ item.machine.name }}
+                      {{ item.machine.name }} ({{ item.machine.model_number }})
                     </span>
                   {% endif %}
                 </div>
-                <div class="chat-question-text">
+                <div class="chat-question-text" style="font-weight: 500;">
                   {{ item.question }}
                 </div>
               </div>
@@ -92,59 +109,93 @@
                 AI
               </div>
               <div class="chat-entry-body">
-                <div class="chat-entry-meta" style="justify-content: space-between;">
+                <div class="chat-entry-meta" style="justify-content: space-between; margin-bottom: var(--space-3);">
                   <div style="display: flex; align-items: center; gap: var(--space-2);">
                     <span class="chat-speaker-name">Maintenance Assistant</span>
-                    <span class="chat-timestamp">{{ item.answered_at|default:item.created_at|date:"Y-m-d H:i:s" }}</span>
+                    <span class="badge badge-indexed" style="font-size: 10px; display: inline-flex; align-items: center; gap: 4px;">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                      Grounded in Manual
+                    </span>
+                    <span class="chat-timestamp">{{ item.answered_at|default:item.created_at|date:"H:i:s" }}</span>
                   </div>
                   <div>
                     {% include "includes/status_badge.html" with status=item.answer_status %}
                   </div>
                 </div>
 
-                <!-- Answer Content -->
-                <div class="ai-answer-text">
-                  {{ item.answer }}
+                <!-- Hidden Raw Answer text for technician copy & client parser -->
+                <textarea class="ai-answer-raw" id="rawAnswer_{{ forloop.counter }}" style="display: none;">{{ item.answer }}</textarea>
+
+                <!-- High-contrast, formatted technical answer -->
+                <div class="tech-answer-formatted">
+                  {{ item.answer|linebreaksbr }}
                 </div>
 
-                <!-- Visual State Notice Callouts -->
+                <!-- Visual State Notice Callouts for Ambiguity or Missing Info -->
                 {% if item.answer_status == 'insufficient_information' or item.answer_status == 'insufficient' %}
-                  <div class="status-callout-notice warning">
+                  <div class="status-callout-notice warning" style="margin-top: var(--space-3);">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 2px;">
                       <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
                       <line x1="12" y1="9" x2="12" y2="13"></line>
                       <line x1="12" y1="17" x2="12.01" y2="17"></line>
                     </svg>
                     <div>
-                      <strong>Insufficient Information Notice:</strong> The ingested technical manuals for this machine do not contain conclusive specifications or procedures for this specific query. Refine the query with error codes, or refer to plant supervisor protocol.
+                      <strong>Insufficient Information Notice:</strong> The ingested technical manuals for this equipment model do not contain conclusive specifications or procedures for this specific query. Refine the query with part numbers, or refer to plant supervisor protocol.
                     </div>
                   </div>
                 {% elif item.answer_status == 'conflicting_information' or item.answer_status == 'conflicting' %}
-                  <div class="status-callout-notice danger">
+                  <div class="status-callout-notice danger" style="margin-top: var(--space-3);">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 2px;">
                       <circle cx="12" cy="12" r="10"></circle>
                       <line x1="12" y1="8" x2="12" y2="12"></line>
                       <line x1="12" y1="16" x2="12.01" y2="16"></line>
                     </svg>
                     <div>
-                      <strong>Conflicting Specification Notice:</strong> The manual contains conflicting operational parameters across different manual sections or revisions. Verify cited passages before executing maintenance.
+                      <strong>Conflicting Specification Notice:</strong> The manual contains conflicting operational parameters across different manual sections or revisions. Verify cited passages in the evidence sidebar before executing maintenance.
                     </div>
                   </div>
                 {% endif %}
 
-                <!-- Citation References Bar -->
-                {% if item.citations %}
-                  <div style="margin-top: var(--space-4); padding-top: var(--space-3); border-top: 1px solid var(--border-subtle); display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap;">
+                <!-- Action Toolbar: Citations & Copy Button -->
+                <div class="answer-action-toolbar">
+                  <!-- Citation Badges -->
+                  <div style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap;">
                     <span style="font-size: 11px; font-weight: 600; color: var(--text-faint); text-transform: uppercase;">
                       Citations:
                     </span>
-                    {% for citation in item.citations %}
-                      <span class="badge badge-neutral" style="font-family: var(--font-mono); font-size: 11px;" title="{{ citation.manual_title }}">
-                        [Doc {% firstof citation.document_id citation.manual_document_id citation.manual.document_id "Manual" %}, p.{{ citation.page_number }}]
-                      </span>
-                    {% endfor %}
+                    {% if item.citations %}
+                      {% for citation in item.citations %}
+                        <a 
+                          href="{% url 'citation_pdf' item.id forloop.counter0 %}#page={{ citation.page_number }}"
+                          target="_blank"
+                          rel="noopener"
+                          class="badge badge-neutral citation-badge-interactive" 
+                          data-doc-id="{% firstof citation.document_id citation.manual_document_id citation.manual.document_id 'MANUAL' %}" 
+                          data-page="{{ citation.page_number }}"
+                          title="Open highlighted citation in PDF (Page {{ citation.page_number }})"
+                          style="font-family: var(--font-mono); font-size: 11px; cursor: pointer; text-decoration: none;"
+                        >
+                          [Doc {% firstof citation.document_id citation.manual_document_id citation.manual.document_id "Manual" %}, p.{{ citation.page_number }}]
+                        </a>
+                      {% endfor %}
+                    {% else %}
+                      <span style="font-size: 11px; color: var(--text-faint);">&mdash; None Cited &mdash;</span>
+                    {% endif %}
                   </div>
-                {% endif %}
+
+                  <!-- Quick Action Buttons -->
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <button type="button" class="btn-copy-answer" data-target="rawAnswer_{{ forloop.counter }}" title="Copy full procedure text to clipboard">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                      </svg>
+                      Copy Procedure
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -152,8 +203,8 @@
       {% else %}
         <!-- Empty Conversation State -->
         <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: var(--text-faint); padding: var(--space-8) var(--space-4); gap: var(--space-3);">
-          <div style="width: 44px; height: 44px; border-radius: var(--radius-md); background-color: var(--raised); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--text-muted);">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <div style="width: 48px; height: 48px; border-radius: var(--radius-md); background-color: var(--accent-subtle); border: 1px solid var(--accent-border); display: flex; align-items: center; justify-content: center; color: var(--accent);">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
               <polyline points="14 2 14 8 20 8"></polyline>
               <line x1="16" y1="13" x2="8" y2="13"></line>
@@ -169,28 +220,33 @@
                 Select an Equipment Fleet to Begin
               {% endif %}
             </h3>
-            <p style="font-size: var(--fs-base); max-width: 440px; margin: 4px auto 0; line-height: 1.4;">
+            <p style="font-size: var(--fs-sm); max-width: 460px; margin: 4px auto 0; line-height: 1.45; color: var(--text-muted);">
               Ask technical questions regarding preventive maintenance, torque specs, hydraulic pressure thresholds, or alarm error codes.
             </p>
           </div>
 
-          <div style="display: flex; gap: var(--space-2); flex-wrap: wrap; justify-content: center; max-width: 540px; margin-top: var(--space-2);">
-            <button type="button" class="btn btn-secondary btn-sm" data-prompt="What is the recommended spindle oil change procedure?">
-              Spindle oil change procedure
+          <!-- Quick Suggestion Action Chips -->
+          <div style="display: flex; gap: var(--space-2); flex-wrap: wrap; justify-content: center; max-width: 580px; margin-top: var(--space-2);">
+            <button type="button" class="btn btn-secondary btn-sm" data-prompt="What is the recommended spindle oil change procedure?" {% if not selected_machine %}disabled{% endif %}>
+              ⚙️ Spindle oil change procedure
             </button>
-            <button type="button" class="btn btn-secondary btn-sm" data-prompt="What are the maximum temperature limits for axis servo motors?">
-              Servo motor temperature limits
+            <button type="button" class="btn btn-secondary btn-sm" data-prompt="What are the maximum temperature limits for axis servo motors?" {% if not selected_machine %}disabled{% endif %}>
+              🌡️ Servo motor temperature limits
             </button>
-            <button type="button" class="btn btn-secondary btn-sm" data-prompt="Check hydraulic pressure relief valve torque specifications.">
-              Relief valve torque specs
+            <button type="button" class="btn btn-secondary btn-sm" data-prompt="Check hydraulic pressure relief valve torque specifications." {% if not selected_machine %}disabled{% endif %}>
+              🔧 Relief valve torque specs
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" data-prompt="Troubleshoot zero-point calibration error on main drive." {% if not selected_machine %}disabled{% endif %}>
+              ⚠️ Zero-point calibration error
             </button>
           </div>
         </div>
       {% endif %}
     </div>
 
-    <!-- Question Input Form Bar -->
+    <!-- Question Input Form Bar with Quick Prompt Pills -->
     <div class="chat-input-bar">
+
       <div class="chat-loading-spinner" id="chatLoadingSpinner">
         <span class="spinner-icon"></span>
         <span>Retrieving semantically matched chunks &amp; verifying citations...</span>
@@ -205,7 +261,7 @@
             name="question" 
             id="chatQuestionInput" 
             class="chat-textarea" 
-            placeholder="Ask maintenance question grounded in manual (e.g. What is the procedure for zero-point alignment?)..." 
+            placeholder="{% if selected_machine %}Ask a technical question about {{ selected_machine.name }} (e.g. What is the procedure for zero-point alignment?)...{% else %}Select equipment from the dropdown above to ask diagnostic questions...{% endif %}" 
             rows="1" 
             required 
             {% if not selected_machine %}disabled title="Please select a machine first"{% endif %}
@@ -232,23 +288,30 @@
     <div class="evidence-header">
       <div class="panel-title-block">
         <h2 class="panel-title" style="font-size: var(--fs-base);">Supporting Evidence</h2>
+        <span class="panel-caption">Grounded technical manual excerpts</span>
       </div>
-      <span class="badge badge-neutral" style="font-size: 10px;">
-        {% if latest_citations %}{{ latest_citations|length }} Sources{% else %}Evidence Grounding{% endif %}
+      <span class="badge badge-neutral" style="font-size: 10px; font-family: var(--font-mono);">
+        {% if latest_citations %}{{ latest_citations|length }} Sources{% else %}Zero Hallucination{% endif %}
       </span>
     </div>
 
     <div class="evidence-body">
       {% if latest_citations %}
         {% for citation in latest_citations %}
-          <div class="evidence-card">
+          <div 
+            class="evidence-card" 
+            data-doc-id="{% firstof citation.document_id citation.manual_document_id citation.manual.document_id %}" 
+            data-page="{{ citation.page_number }}"
+          >
             <div class="evidence-meta-row">
-              <span class="table-code">{% firstof citation.document_id citation.manual.document_id %}</span>
-              <span>Rev {% firstof citation.revision citation.manual.revision %} &bull; Page {{ citation.page_number }}</span>
+              <span class="table-code">{% firstof citation.document_id citation.manual_document_id citation.manual.document_id %}</span>
+              <span style="font-size: 11px; font-family: var(--font-mono);">
+                Rev {% firstof citation.revision citation.manual.revision "1.0" %} &bull; Page {{ citation.page_number }}
+              </span>
             </div>
 
             <div class="evidence-title">
-              {% firstof citation.manual_title citation.manual.title %}
+              {% firstof citation.manual_title citation.manual.title "Technical Manual" %}
             </div>
 
             <blockquote class="evidence-quote">
@@ -257,18 +320,33 @@
 
             <div class="evidence-action-row">
               {% if citation.pdf_url or citation.manual.pdf_file %}
-                <a 
-                  href="{% firstof citation.pdf_url citation.manual.pdf_file.url %}#page={{ citation.page_number }}" 
-                  target="_blank" 
-                  rel="noopener" 
+                <a
+                  href="{% firstof citation.pdf_url citation.manual.pdf_file.url %}#page={{ citation.page_number }}"
+                  target="_blank"
+                  rel="noopener"
                   class="btn btn-secondary btn-sm"
-                  title="Open source PDF to Page {{ citation.page_number }}"
+                  title="Open source PDF directly to Page {{ citation.page_number }}"
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                     <polyline points="14 2 14 8 20 8"></polyline>
                   </svg>
                   Open PDF (p. {{ citation.page_number }})
+                </a>
+              {% endif %}
+              {% if latest_question_id and citation.document_id and citation.page_number %}
+                <a
+                  href="{% url 'citation_pdf' latest_question_id forloop.counter0 %}#page={{ citation.page_number }}"
+                  target="_blank"
+                  rel="noopener"
+                  class="btn btn-secondary btn-sm"
+                  title="View highlighted citation"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                  </svg>
+                  View Highlighted Citation
                 </a>
               {% endif %}
             </div>
@@ -291,4 +369,8 @@
     </div>
   </aside>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/assistant_chat.js' %}"></script>
 {% endblock %}

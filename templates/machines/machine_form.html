@@ -1,9 +1,8 @@
-
 {% extends "base.html" %}
 {% load static %}
 
 {% block title %}
-  {% if machine %}Edit Machine &middot; {{ machine.name }}{% else %}Register Machine &middot; MMA Industrial{% endif %}
+  {% if machine %}Edit Machine &middot; {{ machine.name }}{% else %}Register Machinery &middot; MMA Industrial{% endif %}
 {% endblock %}
 
 {% block current_breadcrumb %}
@@ -13,42 +12,63 @@
 {% block content %}
 {% url 'machine_list' as machine_list_url %}
 
-<div class="page-header">
+<div class="page-header" style="flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-4);">
   <div class="page-header-title-block">
-    <h1 class="page-h1">
-      {% if machine %}Edit Machine Configuration{% else %}Register Shopfloor Machinery{% endif %}
-    </h1>
+    <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;">
+      <h1 class="page-h1">
+        {% if machine %}Edit Machine Configuration{% else %}Register Shopfloor Machinery{% endif %}
+      </h1>
+      <span class="badge badge-neutral" style="font-family: var(--font-mono); font-size: 11px;">
+        {% if machine %}ID: {{ machine.id }}{% else %}New Fleet Unit{% endif %}
+      </span>
+    </div>
     <p class="page-subtitle">Configure equipment specifications and isolation parameters for RAG retrieval</p>
+  </div>
+  <div class="page-actions">
+    <a href="{{ machine_list_url|default:'/machines/' }}" class="btn btn-secondary">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12 19 5 12 12 5"></polyline>
+      </svg>
+      Fleet Registry
+    </a>
   </div>
 </div>
 
-<div style="max-width: 680px;">
+<!-- Two-Column Operational Layout: Form + Live Interactive Preview & RAG Architecture -->
+<div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: var(--space-6);" class="machine-form-layout">
+  <!-- Left Column: Equipment Form -->
   <div class="panel">
     <div class="panel-header">
       <div class="panel-title-block">
-        <h2 class="panel-title">Equipment Specifications</h2>
+        <h2 class="panel-title">Equipment Parameters</h2>
+        <span class="panel-caption">Core telemetry identification &amp; specifications</span>
       </div>
     </div>
 
-    <form method="post" action="" novalidate>
+    <form method="post" action="" id="machineRegistrationForm" novalidate>
       {% csrf_token %}
 
-      <div class="panel-body">
-
+      <div class="panel-body" style="padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-4);">
         {% if form.non_field_errors %}
-          <div class="alert alert-error" style="margin-bottom: var(--space-4);">
+          <div class="alert alert-error">
+            <svg class="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
             <div class="alert-content">
               {% for error in form.non_field_errors %}{{ error }}{% endfor %}
             </div>
           </div>
         {% endif %}
 
+        <!-- Machine Designation / Name -->
         <div class="form-group">
-          <label for="id_name" class="form-label">
+          <label for="id_name" class="form-label" style="font-weight: 600;">
             Machine Designation / Name
-            <span class="required-mark">*</span>
+            <span class="required-mark" style="color: var(--status-danger-text);">*</span>
           </label>
-
           <input
             type="text"
             name="name"
@@ -57,23 +77,26 @@
             placeholder="e.g. CNC 5-Axis Milling Center"
             value="{% if form.name.value != None %}{{ form.name.value }}{% elif machine %}{{ machine.name }}{% endif %}"
             required
+            autofocus
+            style="height: 38px;"
           >
-
-          <span class="form-help">Plant floor name or equipment station label.</span>
-
+          <span class="form-help">Plant floor name or equipment station label recognizable to engineers.</span>
           {% if form.name.errors %}
-            <div class="form-error-msg">
+            <div class="form-error-msg" style="color: var(--status-danger-text); font-size: 11px; margin-top: 3px;">
               {% for error in form.name.errors %}{{ error }}{% endfor %}
             </div>
           {% endif %}
         </div>
 
+        <!-- Model Number / Serial Spec -->
         <div class="form-group">
-          <label for="id_model_number" class="form-label">
-            Model Number / Serial Spec
-            <span class="required-mark">*</span>
+          <label for="id_model_number" class="form-label" style="font-weight: 600; display: flex; align-items: center; justify-content: space-between;">
+            <span>
+              Model Number / Serial Spec
+              <span class="required-mark" style="color: var(--status-danger-text);">*</span>
+            </span>
+            <span class="badge badge-neutral" style="font-size: 10px; font-family: var(--font-mono);">RAG Partition Key</span>
           </label>
-
           <input
             type="text"
             name="model_number"
@@ -82,43 +105,51 @@
             placeholder="e.g. M-HP200"
             value="{% if form.model_number.value != None %}{{ form.model_number.value }}{% elif machine %}{{ machine.model_number }}{% endif %}"
             required
+            style="height: 38px; font-family: var(--font-mono); text-transform: uppercase;"
           >
-
-          <span class="form-help">Unique manufacturer model number used for machine isolation in RAG queries.</span>
-
+          <span class="form-help">Unique manufacturer model number used to isolate semantic search in ChromaDB.</span>
           {% if form.model_number.errors %}
-            <div class="form-error-msg">
+            <div class="form-error-msg" style="color: var(--status-danger-text); font-size: 11px; margin-top: 3px;">
               {% for error in form.model_number.errors %}{{ error }}{% endfor %}
             </div>
           {% endif %}
         </div>
 
+        <!-- Description & Notes -->
         <div class="form-group">
-          <label for="id_description" class="form-label">
-            Equipment Description & Notes
+          <label for="id_description" class="form-label" style="font-weight: 600;">
+            Equipment Description &amp; Operational Notes
           </label>
-
           <textarea
             name="description"
             id="id_description"
             class="form-control {% if form.description.errors %}is-invalid{% endif %}"
+            rows="3"
             placeholder="Operating cell, electrical load, cooling specifications, preventive maintenance schedules..."
+            style="line-height: 1.45;"
           >{% if form.description.value != None %}{{ form.description.value }}{% elif machine %}{{ machine.description }}{% endif %}</textarea>
-
+          <span class="form-help">Technical notes on cell location, preventive intervals, or manufacturer specifications.</span>
           {% if form.description.errors %}
-            <div class="form-error-msg">
+            <div class="form-error-msg" style="color: var(--status-danger-text); font-size: 11px; margin-top: 3px;">
               {% for error in form.description.errors %}{{ error }}{% endfor %}
             </div>
           {% endif %}
         </div>
 
-        <div class="form-group" style="margin-top: var(--space-4);">
-          <label class="form-checkbox-label" for="id_is_active">
-
+        <!-- Production Status Toggle Card -->
+        <div class="form-group" style="margin-top: var(--space-2);">
+          <label class="toggle-switch-card" for="id_is_active">
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <span style="font-weight: 600; color: var(--text-main); font-size: var(--fs-base);">Active in Production</span>
+              <span style="font-size: var(--fs-xs); color: var(--text-faint);">
+                Enables machine in AI diagnostic terminal and permits technical manual associations.
+              </span>
+            </div>
             <input
               type="checkbox"
               name="is_active"
               id="id_is_active"
+              style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--accent);"
               {% if form.is_bound %}
                 {% if form.is_active.value %}checked{% endif %}
               {% elif machine %}
@@ -127,30 +158,102 @@
                 checked
               {% endif %}
             >
-
-            <span>Active in Production (Enabled for Maintenance AI Queries)</span>
           </label>
         </div>
-
       </div>
 
-      <div class="panel-footer">
+      <div class="panel-footer" style="padding: var(--space-4) var(--space-5); display: flex; align-items: center; justify-content: flex-end; gap: var(--space-3); border-top: 1px solid var(--border);">
         <a href="{{ machine_list_url|default:'/machines/' }}" class="btn btn-secondary">
           Cancel
         </a>
-
-        <button type="submit" class="btn btn-primary">
+        <button type="submit" class="btn btn-primary" id="saveMachineBtn">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
             <polyline points="17 21 17 13 7 13 7 21"></polyline>
-            <polyline points="7 3 7 8 15 8"></polyline>
+            <line x1="7" y1="3" x2="7" y2="8"></line>
+            <line x1="15" y1="3" x2="15" y2="8"></line>
           </svg>
-
-          {% if machine %}Update Machine{% else %}Save Machine{% endif %}
+          {% if machine %}Update Machine{% else %}Save &amp; Register Machine{% endif %}
         </button>
       </div>
-
     </form>
   </div>
+
+ 
+
+   
+
+    <!-- Existing Registered Machinery Mini-List -->
+    {% if recent_machines %}
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title-block">
+            <h2 class="panel-title">Registered Machines</h2>
+            <span class="panel-caption">Avoid duplicate model serials</span>
+          </div>
+        </div>
+        <div class="panel-body" style="padding: var(--space-3);">
+          {% for rm in recent_machines %}
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 8px; border-radius: var(--radius-sm); background-color: var(--raised); border: 1px solid var(--border-subtle); margin-bottom: 4px;">
+              <span style="font-size: var(--fs-xs); font-weight: 500; color: var(--text-main);">{{ rm.name }}</span>
+              <span class="table-code" style="font-size: 10px;">{{ rm.model_number }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Live reactive preview updater for machine registration form
+  document.addEventListener('DOMContentLoaded', () => {
+    const nameInput = document.getElementById('id_name');
+    const modelInput = document.getElementById('id_model_number');
+    const descInput = document.getElementById('id_description');
+    const activeCheck = document.getElementById('id_is_active');
+
+    const previewName = document.getElementById('previewName');
+    const previewModel = document.getElementById('previewModel');
+    const previewDesc = document.getElementById('previewDesc');
+    const previewBadge = document.getElementById('previewStatusBadge');
+
+    function updatePreview() {
+      if (previewName && nameInput) {
+        previewName.textContent = nameInput.value.trim() || 'Designation Preview';
+      }
+      if (previewModel && modelInput) {
+        const val = modelInput.value.trim().toUpperCase();
+        previewModel.textContent = val || 'M-SPEC';
+      }
+      if (previewDesc && descInput) {
+        const descVal = descInput.value.trim();
+        previewDesc.textContent = descVal ? (descVal.length > 80 ? descVal.slice(0, 80) + '...' : descVal) : 'Equipment description and cell operational notes will appear here.';
+      }
+      if (previewBadge && activeCheck) {
+        if (activeCheck.checked) {
+          previewBadge.textContent = 'Ready';
+          previewBadge.className = 'badge badge-indexed';
+        } else {
+          previewBadge.textContent = 'Offline';
+          previewBadge.className = 'badge badge-inactive';
+        }
+      }
+    }
+
+    if (nameInput) nameInput.addEventListener('input', updatePreview);
+    if (modelInput) {
+      modelInput.addEventListener('input', () => {
+        modelInput.value = modelInput.value.toUpperCase();
+        updatePreview();
+      });
+    }
+    if (descInput) descInput.addEventListener('input', updatePreview);
+    if (activeCheck) activeCheck.addEventListener('change', updatePreview);
+
+    updatePreview();
+  });
+</script>
 {% endblock %}

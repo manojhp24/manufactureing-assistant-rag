@@ -102,6 +102,27 @@ def generate_answer(question: str, machine_id: str):
         if citation_key not in available_sources:
             raise ValueError(f"Invalid citation: {citation_key}")
 
+    # Map each citation to its source document and attach text_passage
+    for citation in citations:
+        citation_key = (
+            citation["document_id"],
+            citation["revision"],
+            citation["page_number"],
+        )
+        if citation_key in available_sources:
+            # Find the first matching retrieved document and use its text
+            for doc, score in relevant_results:
+                doc_key = (
+                    doc.metadata.get("document_id"),
+                    doc.metadata.get("revision"),
+                    doc.metadata.get("page_number"),
+                )
+                if doc_key == citation_key:
+                    citation["text_passage"] = doc.page_content.strip()
+                    break
+        else:
+            citation["text_passage"] = ""
+
     # Insufficient answers must not contain citations
     if result["status"] == "insufficient":
         citations = []
