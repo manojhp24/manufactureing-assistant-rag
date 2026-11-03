@@ -1,0 +1,344 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Visual Quality Inspection &middot; MMA Industrial{% endblock %}
+
+{% block current_breadcrumb %}Visual Inspection{% endblock %}
+
+{% block content %}
+{% url 'inspection:batch_upload' as batch_upload_url %}
+{% url 'inspection:inspection_history' as history_url %}
+
+<!-- Operational Page Header -->
+<div class="page-header" style="flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-4);">
+  <div class="page-header-title-block">
+    <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;">
+      <h1 class="page-h1">Visual Quality Inspection</h1>
+      <span class="badge badge-neutral" style="font-family: var(--font-mono); font-size: 11px;">
+        Model: BIT-PLATE-CV-1.0
+      </span>
+      <span class="badge badge-success" style="font-family: var(--font-mono); font-size: 11px;">
+        <span class="badge-dot"></span> Pipeline Active
+      </span>
+    </div>
+    <p class="page-subtitle">Automated surface defect classification and telemetry for manufactured plate components</p>
+  </div>
+  <div class="page-actions" style="display: flex; gap: var(--space-2);">
+    <a href="{{ batch_upload_url }}" class="btn btn-secondary">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+      </svg>
+      Batch Upload Mode
+    </a>
+    <a href="{{ history_url }}" class="btn btn-ghost">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <polyline points="12 6 12 12 16 14"></polyline>
+      </svg>
+      History
+    </a>
+  </div>
+</div>
+
+<!-- Two-Column Operational Layout -->
+<div style="display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: var(--space-5); align-items: start;">
+
+  <!-- Left: Ingestion Station -->
+  <div class="panel" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-subtle);">
+    <div class="panel-header" style="padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+      <div class="panel-title-block">
+        <h2 class="panel-title" style="font-size: var(--fs-md); font-weight: 600; color: var(--text-main); margin: 0;">Plate Ingestion &amp; Classification</h2>
+        <span class="panel-caption" style="font-size: var(--fs-xs); color: var(--text-faint);">Upload an optical capture of the plate component for inference</span>
+      </div>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data" id="singleInspectionForm">
+      {% csrf_token %}
+
+      <div class="panel-body" style="padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-4);">
+
+        {% if form.non_field_errors %}
+          <div class="status-callout-notice danger" style="padding: var(--space-3) var(--space-4); background: var(--status-danger-bg); border: 1px solid var(--status-danger-border); border-radius: var(--radius-md); color: var(--status-danger-text); font-size: var(--fs-sm);">
+            {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+          </div>
+        {% endif %}
+
+        <!-- Product Selector -->
+        <div class="form-group">
+          <label class="form-label" for="id_product">
+            <span>Target Product Model <span class="required-mark" style="color: var(--status-danger-text);">*</span></span>
+            <span class="form-label-help">Active catalog item</span>
+          </label>
+          {{ form.product }}
+          {% if form.product.errors %}
+            <div style="color: var(--status-danger-text); font-size: var(--fs-xs); margin-top: 4px;">
+              {{ form.product.errors.0 }}
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Image Upload Dropzone -->
+        <div class="form-group">
+          <label class="form-label" for="id_image">
+            <span>Component Capture Image <span class="required-mark" style="color: var(--status-danger-text);">*</span></span>
+            <span class="form-label-help">JPG, JPEG, or PNG &middot; Max 5 MB</span>
+          </label>
+
+          <!-- Interactive Industrial Dropzone -->
+          <div id="dropzoneContainer" style="border: 2px dashed var(--border-strong); border-radius: var(--radius-lg); background: var(--ground); padding: var(--space-6) var(--space-4); text-align: center; cursor: pointer; transition: all 0.2s ease; position: relative;">
+            <input type="file" name="image" id="id_image" accept=".jpg,.jpeg,.png" style="position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; z-index: 5;" required>
+
+            <div id="dropzonePrompt" style="display: flex; flex-direction: column; align-items: center; gap: var(--space-2);">
+              <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--surface); display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); color: var(--text-faint);">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+              </div>
+              <div style="font-weight: 500; color: var(--text-main); font-size: var(--fs-base);">
+                Drop component photo here, or <span style="color: var(--accent); text-decoration: underline;">browse files</span>
+              </div>
+              <div style="font-size: var(--fs-xs); color: var(--text-faint); font-family: var(--font-mono);">
+                Supported: PNG, JPEG &middot; Dimensions: 64&times;64 to 4096&times;4096 px
+              </div>
+            </div>
+
+            <!-- Client-Side Live Preview Container (Initially Hidden) -->
+            <div id="dropzonePreview" style="display: none; flex-direction: column; align-items: center; gap: var(--space-3); z-index: 10; position: relative;">
+              <img id="previewImg" src="" alt="Selected Plate Preview" style="max-height: 220px; max-width: 100%; object-fit: contain; border-radius: var(--radius-md); border: 1px solid var(--border); box-shadow: var(--shadow-subtle); background: #ffffff;">
+              <div style="display: flex; align-items: center; gap: var(--space-3); font-size: var(--fs-xs); color: var(--text-muted); font-family: var(--font-mono); background: var(--surface); padding: 4px 12px; border-radius: var(--radius-pill); border: 1px solid var(--border);">
+                <span id="previewName" class="fw-medium">filename.png</span>
+                <span>&bull;</span>
+                <span id="previewSize">0 KB</span>
+                <span>&bull;</span>
+                <span id="previewDimensions">0&times;0 px</span>
+              </div>
+              <button type="button" id="btnRemoveFile" class="btn btn-ghost btn-sm" style="color: var(--status-danger-text); padding: 2px 8px; font-size: 11px;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+                Select different image
+              </button>
+            </div>
+          </div>
+
+          {% if form.image.errors %}
+            <div style="color: var(--status-danger-text); font-size: var(--fs-xs); margin-top: 4px;">
+              {{ form.image.errors.0 }}
+            </div>
+          {% endif %}
+        </div>
+
+      </div>
+
+      <!-- Action Footer -->
+      <div class="panel-footer" style="padding: var(--space-4) var(--space-5); background: var(--ground); border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; border-bottom-left-radius: var(--radius-lg); border-bottom-right-radius: var(--radius-lg);">
+        <a href="{{ history_url }}" class="btn btn-ghost">Cancel</a>
+
+        <button type="submit" id="btnSubmitInspection" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: var(--space-2);">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+          </svg>
+          <span>Run AI Inference</span>
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Right: Operational Standard & Telemetry Specs -->
+  <div style="display: flex; flex-direction: column; gap: var(--space-4);">
+
+    <!-- Technical Specification Card -->
+    <div class="panel" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-subtle);">
+      <div class="panel-header" style="padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--border);">
+        <h3 style="font-size: var(--fs-base); font-weight: 600; color: var(--text-main); margin: 0; display: flex; align-items: center; gap: var(--space-2);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent);">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+          Inspection Specifications
+        </h3>
+      </div>
+      <div class="panel-body" style="padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-3); font-size: var(--fs-sm); color: var(--text-muted); line-height: 1.5;">
+        <div style="display: flex; justify-content: space-between; padding-bottom: var(--space-2); border-bottom: 1px solid var(--border-subtle);">
+          <span style="color: var(--text-faint);">Classifier Architecture:</span>
+          <span style="font-family: var(--font-mono); font-weight: 500; color: var(--text-main);">Linear Ridge CV-1.0</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding-bottom: var(--space-2); border-bottom: 1px solid var(--border-subtle);">
+          <span style="color: var(--text-faint);">Input Normalization:</span>
+          <span style="font-family: var(--font-mono); font-weight: 500; color: var(--text-main);">128&times;128 Bilinear RGB</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding-bottom: var(--space-2); border-bottom: 1px solid var(--border-subtle);">
+          <span style="color: var(--text-faint);">Feature Kernel:</span>
+          <span style="font-family: var(--font-mono); font-weight: 500; color: var(--text-main);">Residual Quantiles + Diffs</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding-bottom: var(--space-2); border-bottom: 1px solid var(--border-subtle);">
+          <span style="color: var(--text-faint);">Decision Boundary:</span>
+          <span style="font-family: var(--font-mono); font-weight: 500; color: var(--text-main);">&ge; 0.50 Defect Prob</span>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: var(--text-faint);">Avg Inference Latency:</span>
+          <span style="font-family: var(--font-mono); font-weight: 500; color: var(--status-success-text);">&sim; 24 ms</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Defect Criteria Reference Card -->
+    <div class="panel" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-subtle);">
+      <div class="panel-header" style="padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--border);">
+        <h3 style="font-size: var(--fs-base); font-weight: 600; color: var(--text-main); margin: 0;">
+          Classification Criteria
+        </h3>
+      </div>
+      <div class="panel-body" style="padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-3); font-size: var(--fs-sm);">
+        <div style="padding: var(--space-3); background: var(--status-success-bg); border: 1px solid var(--status-success-border); border-radius: var(--radius-md);">
+          <div style="display: flex; align-items: center; gap: var(--space-2); font-weight: 600; color: var(--status-success-text); margin-bottom: 2px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+            Normal (Pass)
+          </div>
+          <p style="margin: 0; font-size: var(--fs-xs); color: var(--status-success-text);">
+            Uniform surface reflectivity, absence of deep tool chatter marks, micro-scratches within acceptable RMS deviation limits.
+          </p>
+        </div>
+
+        <div style="padding: var(--space-3); background: var(--status-danger-bg); border: 1px solid var(--status-danger-border); border-radius: var(--radius-md);">
+          <div style="display: flex; align-items: center; gap: var(--space-2); font-weight: 600; color: var(--status-danger-text); margin-bottom: 2px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            Defective (Reject)
+          </div>
+          <p style="margin: 0; font-size: var(--fs-xs); color: var(--status-danger-text);">
+            Deep localized gouges, pitting corrosion, corner chips, thermal hairline fractures, or excessive burr formations.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Batch Recommendation Callout -->
+    <div style="background: var(--ground); border: 1px dashed var(--border-strong); border-radius: var(--radius-lg); padding: var(--space-4); display: flex; align-items: center; justify-content: space-between; gap: var(--space-3);">
+      <div>
+        <div style="font-weight: 600; font-size: var(--fs-sm); color: var(--text-main);">Inspecting multiple plates?</div>
+        <div style="font-size: var(--fs-xs); color: var(--text-faint);">Process up to 10 component images in a single batch.</div>
+      </div>
+      <a href="{{ batch_upload_url }}" class="btn btn-secondary btn-sm" style="white-space: nowrap;">
+        Launch Batch Mode
+      </a>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- Dropzone Interactive Script -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const fileInput = document.getElementById("id_image");
+  const dropzonePrompt = document.getElementById("dropzonePrompt");
+  const dropzonePreview = document.getElementById("dropzonePreview");
+  const previewImg = document.getElementById("previewImg");
+  const previewName = document.getElementById("previewName");
+  const previewSize = document.getElementById("previewSize");
+  const previewDimensions = document.getElementById("previewDimensions");
+  const btnRemoveFile = document.getElementById("btnRemoveFile");
+  const dropzoneContainer = document.getElementById("dropzoneContainer");
+  const form = document.getElementById("singleInspectionForm");
+  const submitBtn = document.getElementById("btnSubmitInspection");
+
+  if (!fileInput) return;
+
+  function formatBytes(bytes) {
+    if (bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
+  }
+
+  function handleFile(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      previewImg.src = e.target.result;
+      previewName.textContent = file.name;
+      previewSize.textContent = formatBytes(file.size);
+
+      const img = new Image();
+      img.onload = function () {
+        previewDimensions.textContent = this.width + " \u00d7 " + this.height + " px";
+      };
+      img.src = e.target.result;
+
+      dropzonePrompt.style.display = "none";
+      dropzonePreview.style.display = "flex";
+      dropzoneContainer.style.borderColor = "var(--border)";
+      dropzoneContainer.style.background = "var(--surface)";
+    };
+    reader.readAsDataURL(file);
+  }
+
+  fileInput.addEventListener("change", function () {
+    if (this.files && this.files[0]) {
+      handleFile(this.files[0]);
+    }
+  });
+
+  // Drag over visual feedback
+  ["dragenter", "dragover"].forEach(eventName => {
+    dropzoneContainer.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      dropzoneContainer.style.borderColor = "var(--accent)";
+      dropzoneContainer.style.background = "var(--accent-subtle)";
+    });
+  });
+
+  ["dragleave", "drop"].forEach(eventName => {
+    dropzoneContainer.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      if (!fileInput.files.length) {
+        dropzoneContainer.style.borderColor = "var(--border-strong)";
+        dropzoneContainer.style.background = "var(--ground)";
+      }
+    });
+  });
+
+  btnRemoveFile.addEventListener("click", function (e) {
+    e.stopPropagation();
+    fileInput.value = "";
+    previewImg.src = "";
+    dropzonePrompt.style.display = "flex";
+    dropzonePreview.style.display = "none";
+    dropzoneContainer.style.borderColor = "var(--border-strong)";
+    dropzoneContainer.style.background = "var(--ground)";
+  });
+
+  form.addEventListener("submit", function () {
+    if (fileInput.files && fileInput.files.length > 0) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="animate-spin" style="animation: spin 1s linear infinite;">
+          <circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle>
+          <path d="M12 2a10 10 0 0 1 10 10" stroke-opacity="1"></path>
+        </svg>
+        <span>Running Inference...</span>
+      `;
+    }
+  });
+});
+</script>
+<style>
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+</style>
+{% endblock %}

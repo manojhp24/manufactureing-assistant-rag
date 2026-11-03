@@ -1,0 +1,86 @@
+
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <h2>Model Evaluation</h2>
+    <p>BIT-PLATE-CV-1.0</p>
+
+    <div class="row g-3 mt-3">
+
+        <div class="col-md-3">
+            <div class="card p-3">
+                <h6>Total Samples</h6>
+                <h3>{{ evaluation.total_samples }}</h3>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card p-3">
+                <h6>Accuracy</h6>
+                <h3>{{ evaluation.accuracy|floatformat:2 }}</h3>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card p-3">
+                <h6>Defect Precision</h6>
+                <h3>{{ evaluation.defect_precision|floatformat:2 }}</h3>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card p-3">
+                <h6>Defect Recall</h6>
+                <h3>{{ evaluation.defect_recall|floatformat:2 }}</h3>
+            </div>
+        </div>
+
+    </div>
+
+    <h4 class="mt-4">Confusion Matrix</h4>
+
+    <table class="table table-bordered text-center">
+        <thead>
+            <tr>
+                <th>Actual / Predicted</th>
+                <th>Normal</th>
+                <th>Defective</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <th>Normal</th>
+                <td>{{ evaluation.confusion_matrix.Normal.Normal }}</td>
+                <td>{{ evaluation.confusion_matrix.Normal.Defective }}</td>
+            </tr>
+            <tr>
+                <th>Defective</th>
+                <td>{{ evaluation.confusion_matrix.Defective.Normal }}</td>
+                <td>{{ evaluation.confusion_matrix.Defective.Defective }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h4 class="mt-4">Evaluation Summary</h4>
+
+    <p>Successfully evaluated: {{ evaluation.evaluated }}</p>
+    <p>Failed predictions: {{ evaluation.failed }}</p>
+
+    {% if evaluation.failed_images %}
+        <h5>Failed Images</h5>
+        <ul>
+            {% for item in evaluation.failed_images %}
+                <li>{{ item.image_id }}: {{ item.reason }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    <div class="alert alert-warning mt-3">
+        Evaluation uses 60 synthetic samples. Perfect results on this
+        dataset do not establish real-world manufacturing reliability.
+    </div>
+
+</div>
+{% endblock %}

@@ -4,14 +4,25 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.views.generic import RedirectView
 
 urlpatterns = [
+     path(
+        "",
+        RedirectView.as_view(
+            pattern_name="login",
+            permanent=False
+        ),
+        name="home"
+    ),
+
     path("admin/", admin.site.urls),
     path("accounts/", include("accounts.urls")),
     path("manuals/", include("manuals.urls")),
     path("dashboard/", include("dashboard.urls")),
     path("machines/", include("machines.urls")),
     path("assistant/", include("assistant.urls")),
+    path("inspection/", include("inspection.urls")),
 ]
 
 if settings.DEBUG:

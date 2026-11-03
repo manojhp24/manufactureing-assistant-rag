@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+  {% if is_edit %}Edit Product {{ product.product_id }}{% else %}Register Supported Product{% endif %} &middot; MMA Industrial
+{% endblock %}
+
+{% block current_breadcrumb %}
+  {% if is_edit %}Edit {{ product.product_id }}{% else %}Register Product{% endif %}
+{% endblock %}
+
+{% block content %}
+{% url 'inspection:product_list' as product_list_url %}
+
+<!-- Operational Header -->
+<div class="page-header" style="flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-4);">
+  <div class="page-header-title-block">
+    <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;">
+      <h1 class="page-h1">
+        {% if is_edit %}
+          Edit Supported Product &middot; <span style="font-family: var(--font-mono);">{{ product.product_id }}</span>
+        {% else %}
+          Register Supported Product
+        {% endif %}
+      </h1>
+      <span class="badge badge-info" style="font-family: var(--font-mono); font-size: 11px;">
+        Administrator Operations
+      </span>
+      <span class="badge badge-neutral" style="font-family: var(--font-mono); font-size: 11px;">
+        Model: BIT-PLATE-CV-1.0
+      </span>
+    </div>
+    <p class="page-subtitle">
+      {% if is_edit %}
+        Update industrial component specifications and catalog parameters
+      {% else %}
+        Authorize a manufactured plate model (e.g., P-PLATE01) for automated defect classification
+      {% endif %}
+    </p>
+  </div>
+
+  <div class="page-actions" style="display: flex; gap: var(--space-2);">
+    <a href="{{ product_list_url }}" class="btn btn-secondary">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12 19 5 12 12 5"></polyline>
+      </svg>
+      Product Catalog
+    </a>
+  </div>
+</div>
+
+<!-- Two-Column Operational Layout -->
+<div style="display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: var(--space-5); align-items: start;">
+
+  <!-- Left: Product Registration Form -->
+  <div class="panel" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-subtle);">
+    <div class="panel-header" style="padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--border);">
+      <div class="panel-title-block">
+        <h2 class="panel-title" style="font-size: var(--fs-md); font-weight: 600; color: var(--text-main); margin: 0;">Component Parameters</h2>
+        <span class="panel-caption" style="font-size: var(--fs-xs); color: var(--text-faint);">Specify unique model code and component metadata</span>
+      </div>
+    </div>
+
+    <form method="POST" id="productForm">
+      {% csrf_token %}
+
+      <div class="panel-body" style="padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-4);">
+
+        {% if form.non_field_errors %}
+          <div class="status-callout-notice danger" style="padding: var(--space-3) var(--space-4); font-size: var(--fs-sm);">
+            {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+          </div>
+        {% endif %}
+
+        <!-- Product Code ID -->
+        <div class="form-group">
+          <label class="form-label" for="id_product_id">
+            <span>Product Identifier Code <span class="required-mark" style="color: var(--status-danger-text);">*</span></span>
+            <span class="form-label-help">Unique catalog key (e.g., P-PLATE01)</span>
+          </label>
+          {{ form.product_id }}
+          {% if form.product_id.errors %}
+            <div style="color: var(--status-danger-text); font-size: var(--fs-xs); margin-top: 4px;">
+              {{ form.product_id.errors.0 }}
+            </div>
+          {% endif %}
+          <div style="font-size: var(--fs-xs); color: var(--text-faint); margin-top: 2px;">
+            Standard format: <code>P-PLATE01</code>, <code>P-PLATE02</code>, etc.
+          </div>
+        </div>
+
+        <!-- Product Name -->
+        <div class="form-group">
+          <label class="form-label" for="id_name">
+            <span>Product Name / Title <span class="required-mark" style="color: var(--status-danger-text);">*</span></span>
+            <span class="form-label-help">Descriptive label</span>
+          </label>
+          {{ form.name }}
+          {% if form.name.errors %}
+            <div style="color: var(--status-danger-text); font-size: var(--fs-xs); margin-top: 4px;">
+              {{ form.name.errors.0 }}
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Description -->
+        <div class="form-group">
+          <label class="form-label" for="id_description">
+            <span>Manufacturing Specifications &amp; Alloy Notes</span>
+            <span class="form-label-help">Optional</span>
+          </label>
+          {{ form.description }}
+          {% if form.description.errors %}
+            <div style="color: var(--status-danger-text); font-size: var(--fs-xs); margin-top: 4px;">
+              {{ form.description.errors.0 }}
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Active Status Checkbox -->
+        <div style="padding: var(--space-3); background: var(--ground); border-radius: var(--radius-md); border: 1px solid var(--border); display: flex; align-items: center; gap: var(--space-3);">
+          {{ form.is_active }}
+          <div>
+            <label for="id_is_active" style="font-size: var(--fs-sm); font-weight: 600; color: var(--text-main); margin: 0; cursor: pointer;">
+              Enable Product for Live Inspection Ingestion
+            </label>
+            <div style="font-size: var(--fs-xs); color: var(--text-faint); margin-top: 2px;">
+              When checked, engineers can select this product code when uploading plate images.
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Footer Actions -->
+      <div class="panel-footer" style="padding: var(--space-4) var(--space-5); background: var(--ground); border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; border-bottom-left-radius: var(--radius-lg); border-bottom-right-radius: var(--radius-lg);">
+        <a href="{{ product_list_url }}" class="btn btn-ghost">Cancel</a>
+
+        <button type="submit" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: var(--space-2);">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          <span>{% if is_edit %}Save Changes{% else %}Register Product{% endif %}</span>
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Right: Model Compatibility & Reference Info -->
+  <div style="display: flex; flex-direction: column; gap: var(--space-4);">
+
+    <!-- Reference Specs -->
+    <div class="panel" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-subtle);">
+      <div class="panel-header" style="padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--border);">
+        <h3 style="font-size: var(--fs-base); font-weight: 600; color: var(--text-main); margin: 0; display: flex; align-items: center; gap: var(--space-2);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent);">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          </svg>
+          Classifier Compatibility
+        </h3>
+      </div>
+      <div class="panel-body" style="padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-3); font-size: var(--fs-sm); color: var(--text-muted); line-height: 1.5;">
+        <div style="display: flex; justify-content: space-between; padding-bottom: var(--space-2); border-bottom: 1px solid var(--border-subtle);">
+          <span style="color: var(--text-faint);">Active Model:</span>
+          <span style="font-family: var(--font-mono); font-weight: 600; color: var(--text-main);">BIT-PLATE-CV-1.0</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding-bottom: var(--space-2); border-bottom: 1px solid var(--border-subtle);">
+          <span style="color: var(--text-faint);">Target Class:</span>
+          <span style="font-weight: 500; color: var(--text-main);">Demonstration metal plates</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding-bottom: var(--space-2); border-bottom: 1px solid var(--border-subtle);">
+          <span style="color: var(--text-faint);">Supported Formats:</span>
+          <span style="font-family: var(--font-mono); color: var(--text-main);">PNG, JPG, JPEG</span>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: var(--text-faint);">Pretrained Weights:</span>
+          <span style="font-family: var(--font-mono); color: var(--status-success-text);">Model/classifier.npz</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Help Card -->
+    <div style="background: var(--ground); border: 1px dashed var(--border-strong); border-radius: var(--radius-lg); padding: var(--space-4);">
+      <div style="font-weight: 600; font-size: var(--fs-sm); color: var(--text-main); margin-bottom: 4px;">
+        Default Component: P-PLATE01
+      </div>
+      <p style="margin: 0; font-size: var(--fs-xs); color: var(--text-faint); line-height: 1.4;">
+        The benchmark visual inspection dataset contains 60 reference plate samples mapped to product code <code>P-PLATE01</code> (&ldquo;Demonstration metal plate&rdquo;). Registering this code activates the complete demonstration defect pipeline.
+      </p>
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}
+

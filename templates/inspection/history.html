@@ -1,0 +1,353 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Inspection History &middot; MMA Industrial{% endblock %}
+
+{% block current_breadcrumb %}Inspection History{% endblock %}
+
+{% block content %}
+{% url 'inspection:upload_inspection' as single_upload_url %}
+{% url 'inspection:batch_upload' as batch_upload_url %}
+{% url 'inspection:inspection_history' as history_url %}
+
+<!-- Operational Header -->
+<div class="page-header" style="flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-4);">
+  <div class="page-header-title-block">
+    <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;">
+      <h1 class="page-h1">Inspection History &amp; Quality Audit</h1>
+      <span class="badge badge-neutral" style="font-family: var(--font-mono); font-size: 11px;">
+        Vision QA Repository
+      </span>
+      {% if is_supervisor %}
+        <span class="badge badge-info" style="font-family: var(--font-mono); font-size: 11px;">
+          Supervisor Review Enabled
+        </span>
+      {% endif %}
+    </div>
+    <p class="page-subtitle">Historical audit trail of all optical plate inspections, defect classifications, and supervisor confirmations</p>
+  </div>
+
+  {% if not is_supervisor %}
+  <div class="page-actions" style="display: flex; gap: var(--space-2); flex-wrap: wrap;">
+    <a href="{{ single_upload_url }}" class="btn btn-secondary">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+        <circle cx="12" cy="13" r="4"></circle>
+      </svg>
+      Single Inspection
+    </a>
+    <a href="{{ batch_upload_url }}" class="btn btn-primary">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+      </svg>
+      Batch Upload
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Industrial KPI Summary Strip -->
+<div class="kpi-strip" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--space-3); margin-bottom: var(--space-5);">
+  <div class="kpi-cell" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-4);">
+    <div class="kpi-label" style="font-size: var(--fs-xs); color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Total Ingested</div>
+    <div class="kpi-value-row" style="margin-top: 4px;">
+      <span class="kpi-value" style="font-family: var(--font-mono); font-size: var(--fs-kpi); font-weight: 700; color: var(--text-main);">{{ total_count|default:0 }}</span>
+    </div>
+    <div class="kpi-subtext" style="font-size: 11px; color: var(--text-faint);">All-time QA runs</div>
+  </div>
+
+  <div class="kpi-cell" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-4);">
+    <div class="kpi-label" style="font-size: var(--fs-xs); color: var(--status-success-text); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Conforming (Normal)</div>
+    <div class="kpi-value-row" style="margin-top: 4px;">
+      <span class="kpi-value" style="font-family: var(--font-mono); font-size: var(--fs-kpi); font-weight: 700; color: var(--status-success-text);">{{ normal_count|default:0 }}</span>
+    </div>
+    <div class="kpi-subtext" style="font-size: 11px; color: var(--status-success-text);">Within tolerance limits</div>
+  </div>
+
+  <div class="kpi-cell" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-4);">
+    <div class="kpi-label" style="font-size: var(--fs-xs); color: var(--status-danger-text); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Defects Identified</div>
+    <div class="kpi-value-row" style="margin-top: 4px;">
+      <span class="kpi-value" style="font-family: var(--font-mono); font-size: var(--fs-kpi); font-weight: 700; color: var(--status-danger-text);">{{ defective_count|default:0 }}</span>
+    </div>
+    <div class="kpi-subtext" style="font-size: 11px; color: var(--status-danger-text);">Requires review/rework</div>
+  </div>
+
+  <div class="kpi-cell" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-4);">
+    <div class="kpi-label" style="font-size: var(--fs-xs); color: var(--status-warning-text); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Pending Review</div>
+    <div class="kpi-value-row" style="margin-top: 4px;">
+      <span class="kpi-value" style="font-family: var(--font-mono); font-size: var(--fs-kpi); font-weight: 700; color: {% if pending_review_count > 0 %}var(--status-warning-text){% else %}var(--text-disabled){% endif %};">{{ pending_review_count|default:0 }}</span>
+    </div>
+    <div class="kpi-subtext" style="font-size: 11px; color: var(--text-faint);">{{ reviewed_count|default:0 }} verified by supervisor</div>
+  </div>
+</div>
+
+<!-- Supervisor Filter Toolbar Panel -->
+<div class="panel" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-subtle); margin-bottom: var(--space-5);">
+  <form method="GET" action="{{ history_url }}" style="padding: var(--space-4) var(--space-5); display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: flex-end;">
+
+    <!-- Prediction Filter -->
+    <div style="flex: 1; min-width: 160px;">
+      <label class="form-label" for="filterPrediction" style="font-size: var(--fs-xs); margin-bottom: 4px;">
+        AI Prediction Verdict
+      </label>
+      <select name="prediction" id="filterPrediction" class="form-control" style="height: 36px; font-size: var(--fs-sm);">
+        <option value="">&mdash; All Predictions &mdash;</option>
+        <option value="Normal" {% if selected_prediction == "Normal" %}selected{% endif %}>Normal (Pass)</option>
+        <option value="Defective" {% if selected_prediction == "Defective" %}selected{% endif %}>Defective (Reject)</option>
+      </select>
+    </div>
+
+    <!-- Status Filter -->
+    <div style="flex: 1; min-width: 160px;">
+      <label class="form-label" for="filterStatus" style="font-size: var(--fs-xs); margin-bottom: 4px;">
+        Pipeline Status
+      </label>
+      <select name="status" id="filterStatus" class="form-control" style="height: 36px; font-size: var(--fs-sm);">
+        <option value="">&mdash; All Statuses &mdash;</option>
+        <option value="completed" {% if selected_status == "completed" %}selected{% endif %}>Completed</option>
+        <option value="failed" {% if selected_status == "failed" %}selected{% endif %}>Failed</option>
+        <option value="processing" {% if selected_status == "processing" %}selected{% endif %}>Processing</option>
+        <option value="queued" {% if selected_status == "queued" %}selected{% endif %}>Queued</option>
+      </select>
+    </div>
+
+    <!-- Supervisor Review Status Filter -->
+    <div style="flex: 1.2; min-width: 200px;">
+      <label class="form-label" for="filterReviewStatus" style="font-size: var(--fs-xs); margin-bottom: 4px;">
+        Supervisor Verification Status
+      </label>
+      <select name="review_status" id="filterReviewStatus" class="form-control" style="height: 36px; font-size: var(--fs-sm);">
+        <option value="">&mdash; All Review Statuses &mdash;</option>
+        <option value="pending" {% if selected_review_status == "pending" %}selected{% endif %}>Pending Review (Needs Verification)</option>
+        <option value="confirmed" {% if selected_review_status == "confirmed" %}selected{% endif %}>Confirmed by Supervisor</option>
+        <option value="corrected" {% if selected_review_status == "corrected" %}selected{% endif %}>Corrected by Supervisor</option>
+        <option value="reviewed" {% if selected_review_status == "reviewed" %}selected{% endif %}>All Reviewed Records</option>
+      </select>
+    </div>
+
+    <!-- Actions -->
+    <div style="display: flex; gap: var(--space-2);">
+      <button type="submit" class="btn btn-secondary" style="height: 36px; display: inline-flex; align-items: center; gap: 4px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+        </svg>
+        <span>Apply Filters</span>
+      </button>
+
+      {% if selected_prediction or selected_status or selected_review_status %}
+        <a href="{{ history_url }}" class="btn btn-ghost" style="height: 36px; display: inline-flex; align-items: center; gap: 4px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+          <span>Reset</span>
+        </a>
+      {% endif %}
+    </div>
+
+  </form>
+</div>
+
+<!-- Inspections Table Panel -->
+<div class="panel" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-subtle); overflow: hidden;">
+  <div class="panel-header" style="padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+    <div class="panel-title-block">
+      <h2 class="panel-title" style="font-size: var(--fs-md); font-weight: 600; color: var(--text-main); margin: 0;">Inspection Records</h2>
+      <span class="panel-caption" style="font-size: var(--fs-xs); color: var(--text-faint);">Showing {{ inspections.count }} matched records</span>
+    </div>
+  </div>
+
+  <div class="panel-body" style="padding: 0;">
+    <div class="table-responsive">
+      <table class="table" style="margin: 0; width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="background: var(--ground); border-bottom: 1px solid var(--border);">
+            <th style="padding: var(--space-3) var(--space-4); font-size: var(--fs-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; width: 70px;">ID</th>
+            <th style="padding: var(--space-3) var(--space-4); font-size: var(--fs-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Component</th>
+            <th style="padding: var(--space-3) var(--space-4); font-size: var(--fs-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Product</th>
+            <th style="padding: var(--space-3) var(--space-4); font-size: var(--fs-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">AI Verdict</th>
+            <th style="padding: var(--space-3) var(--space-4); font-size: var(--fs-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Confidence</th>
+            <th style="padding: var(--space-3) var(--space-4); font-size: var(--fs-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Supervisor Verification</th>
+            <th style="padding: var(--space-3) var(--space-4); font-size: var(--fs-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Timestamp</th>
+            <th style="padding: var(--space-3) var(--space-4); font-size: var(--fs-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; text-align: right;">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in inspections %}
+          <tr style="border-bottom: 1px solid var(--border-subtle); transition: background 0.15s ease;">
+            <!-- ID -->
+            <td style="padding: var(--space-3) var(--space-4); font-family: var(--font-mono); font-size: var(--fs-sm); font-weight: 600; color: var(--text-main);">
+              #{{ item.id }}
+            </td>
+
+            <!-- Thumbnail & Filename -->
+            <td style="padding: var(--space-3) var(--space-4);">
+              <div style="display: flex; align-items: center; gap: var(--space-3);">
+                {% if item.image %}
+                  <img
+                    src="{{ item.image.url }}"
+                    alt="Plate thumbnail"
+                    style="width: 36px; height: 36px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--border); background: #0f172a;"
+                  >
+                {% else %}
+                  <div style="width: 36px; height: 36px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--ground); display: flex; align-items: center; justify-content: center; color: var(--text-disabled);">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="1" y1="1" x2="23" y2="23"></line>
+                    </svg>
+                  </div>
+                {% endif %}
+                <div style="font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-muted); max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                  {{ item.original_filename|default:item.image.name }}
+                </div>
+              </div>
+            </td>
+
+            <!-- Product -->
+            <td style="padding: var(--space-3) var(--space-4);">
+              <div style="font-family: var(--font-mono); font-size: var(--fs-sm); font-weight: 600; color: var(--text-main);">
+                {{ item.product.product_id }}
+              </div>
+              <div style="font-size: 11px; color: var(--text-faint);">
+                {{ item.product.name }}
+              </div>
+            </td>
+
+            <!-- Verdict -->
+            <td style="padding: var(--space-3) var(--space-4);">
+              {% if item.predicted_class == "Normal" %}
+                <span class="badge badge-success" style="font-weight: 600;">
+                  <span class="badge-dot"></span> Normal
+                </span>
+              {% elif item.predicted_class == "Defective" %}
+                <span class="badge badge-danger" style="font-weight: 600;">
+                  <span class="badge-dot"></span> Defective
+                </span>
+              {% elif item.status == "failed" %}
+                <span class="badge badge-danger">Failed</span>
+              {% else %}
+                <span style="color: var(--text-disabled);">&mdash;</span>
+              {% endif %}
+            </td>
+
+            <!-- Confidence -->
+            <td style="padding: var(--space-3) var(--space-4);">
+              {% if item.confidence is not None %}
+                <div style="display: flex; align-items: center; gap: var(--space-2);">
+                  <span style="font-family: var(--font-mono); font-size: var(--fs-sm); font-weight: 600; color: var(--text-main);">
+                    {{ item.confidence|floatformat:4 }}
+                  </span>
+                  <div style="width: 44px; height: 5px; background: var(--raised); border-radius: var(--radius-pill); overflow: hidden;">
+                    <div style="width: {% widthratio item.confidence 1 100 %}%; height: 100%; background: {% if item.predicted_class == 'Normal' %}var(--status-success-text){% else %}var(--status-danger-text){% endif %};"></div>
+                  </div>
+                </div>
+              {% else %}
+                <span style="color: var(--text-disabled);">&mdash;</span>
+              {% endif %}
+            </td>
+
+            <!-- Supervisor Verification -->
+            <td style="padding: var(--space-3) var(--space-4);">
+              {% if item.review %}
+                {% if item.review.reviewed_class == item.predicted_class %}
+                  <div style="display: flex; flex-direction: column; gap: 2px;">
+                    <span class="badge badge-success" style="font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                      Confirmed ({{ item.review.reviewed_class }})
+                    </span>
+                    <span style="font-size: 10px; color: var(--text-faint); font-family: var(--font-mono);">
+                      By {{ item.review.reviewer.username }} &middot; {{ item.review.reviewed_at|date:"d M H:i" }}
+                    </span>
+                    {% if item.review.comment %}
+                      <span style="font-size: 11px; color: var(--text-muted); font-style: italic; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ item.review.comment }}">
+                        &ldquo;{{ item.review.comment }}&rdquo;
+                      </span>
+                    {% endif %}
+                  </div>
+                {% else %}
+                  <div style="display: flex; flex-direction: column; gap: 2px;">
+                    <span class="badge badge-warning" style="font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                      </svg>
+                      Corrected &rarr; {{ item.review.reviewed_class }}
+                    </span>
+                    <span style="font-size: 10px; color: var(--text-faint); font-family: var(--font-mono);">
+                      By {{ item.review.reviewer.username }} &middot; {{ item.review.reviewed_at|date:"d M H:i" }}
+                    </span>
+                    {% if item.review.comment %}
+                      <span style="font-size: 11px; color: var(--status-warning-text); font-style: italic; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ item.review.comment }}">
+                        &ldquo;{{ item.review.comment }}&rdquo;
+                      </span>
+                    {% endif %}
+                  </div>
+                {% endif %}
+              {% elif item.status == "completed" %}
+                <span class="badge badge-neutral" style="font-size: 11px;">
+                  Pending Review
+                </span>
+              {% else %}
+                <span style="color: var(--text-disabled);">&mdash;</span>
+              {% endif %}
+            </td>
+
+            <!-- Timestamp -->
+            <td style="padding: var(--space-3) var(--space-4); font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-muted);">
+              <div>{{ item.created_at|date:"Y-m-d" }}</div>
+              <div style="color: var(--text-faint);">{{ item.created_at|date:"H:i:s" }}</div>
+            </td>
+
+            <!-- Actions -->
+            <td style="padding: var(--space-3) var(--space-4); text-align: right;">
+              <div style="display: flex; gap: var(--space-1); justify-content: flex-end;">
+                {% if is_supervisor and item.status == "completed" and not item.review %}
+                  <a href="{% url 'inspection:review_inspection' item.id %}" class="btn btn-primary btn-sm" style="display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; font-size: 11px;">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    </svg>
+                    <span>Review</span>
+                  </a>
+                {% endif %}
+                <a href="{% url 'inspection:inspection_detail' item.id %}" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 4px;">
+                  <span>View</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" style="text-align: center; padding: var(--space-8); color: var(--text-faint);">
+              <div style="display: flex; flex-direction: column; align-items: center; gap: var(--space-3);">
+                <div style="width: 48px; height: 48px; border-radius: 50%; background: var(--ground); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--text-disabled);">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="8" y1="12" x2="16" y2="12"></line>
+                  </svg>
+                </div>
+                <div>
+                  <h4 style="margin: 0; font-size: var(--fs-base); color: var(--text-main); font-weight: 600;">No inspection records found</h4>
+                  <p style="margin: 4px 0 0 0; font-size: var(--fs-xs); color: var(--text-faint);">No plate captures matched the current filter criteria.</p>
+                </div>
+                {% if not is_supervisor %}
+                <div style="display: flex; gap: var(--space-2); margin-top: var(--space-2);">
+                  <a href="{{ single_upload_url }}" class="btn btn-secondary btn-sm">Single Inspection</a>
+                  <a href="{{ batch_upload_url }}" class="btn btn-primary btn-sm">Batch Ingestion</a>
+                </div>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,327 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Batch Visual Inspection &middot; MMA Industrial{% endblock %}
+
+{% block current_breadcrumb %}Batch Inspection{% endblock %}
+
+{% block content %}
+{% url 'inspection:upload_inspection' as single_upload_url %}
+{% url 'inspection:inspection_history' as history_url %}
+
+<!-- Operational Page Header -->
+<div class="page-header" style="flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-4);">
+  <div class="page-header-title-block">
+    <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;">
+      <h1 class="page-h1">Batch Visual Inspection</h1>
+      <span class="badge badge-neutral" style="font-family: var(--font-mono); font-size: 11px;">
+        Pipeline: Batch (1 - 10 Units)
+      </span>
+      <span class="badge badge-info" style="font-family: var(--font-mono); font-size: 11px;">
+        Isolated Failure Containment
+      </span>
+    </div>
+    <p class="page-subtitle">Queue and evaluate multiple plate captures concurrently for high-throughput shopfloor verification</p>
+  </div>
+  <div class="page-actions" style="display: flex; gap: var(--space-2);">
+    <a href="{{ single_upload_url }}" class="btn btn-secondary">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+        <circle cx="12" cy="13" r="4"></circle>
+      </svg>
+      Single Inspection
+    </a>
+    <a href="{{ history_url }}" class="btn btn-ghost">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <polyline points="12 6 12 12 16 14"></polyline>
+      </svg>
+      History
+    </a>
+  </div>
+</div>
+
+<!-- Two-Column Operational Layout -->
+<div style="display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: var(--space-5); align-items: start;">
+
+  <!-- Left: Batch Ingestion Station -->
+  <div class="panel" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-subtle);">
+    <div class="panel-header" style="padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+      <div class="panel-title-block">
+        <h2 class="panel-title" style="font-size: var(--fs-md); font-weight: 600; color: var(--text-main); margin: 0;">Multi-Image Ingestion Parameters</h2>
+        <span class="panel-caption" style="font-size: var(--fs-xs); color: var(--text-faint);">Select product code and up to 10 optical inspection images</span>
+      </div>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data" id="batchInspectionForm">
+      {% csrf_token %}
+
+      <div class="panel-body" style="padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-4);">
+
+        <!-- Product Selector -->
+        <div class="form-group">
+          <label class="form-label" for="productSelect">
+            <span>Target Product Model <span class="required-mark" style="color: var(--status-danger-text);">*</span></span>
+            <span class="form-label-help">Applies to all images in batch</span>
+          </label>
+          <select name="product" id="productSelect" class="form-control" required style="font-family: var(--font-mono); font-size: var(--fs-base);">
+            <option value="">&mdash; Choose product model &mdash;</option>
+            {% for product in products %}
+              <option value="{{ product.id }}">
+                {{ product.product_id }} &mdash; {{ product.name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Multi-File Dropzone -->
+        <div class="form-group">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <label class="form-label" for="batchFileInput" style="margin-bottom: 0;">
+              <span>Batch Images (1 to 10 files) <span class="required-mark" style="color: var(--status-danger-text);">*</span></span>
+            </label>
+            <span id="fileCounterBadge" class="badge badge-neutral" style="font-family: var(--font-mono); font-size: 11px;">
+              0 / 10 Selected
+            </span>
+          </div>
+
+          <div id="batchDropzone" style="border: 2px dashed var(--border-strong); border-radius: var(--radius-lg); background: var(--ground); padding: var(--space-6) var(--space-4); text-align: center; cursor: pointer; transition: all 0.2s ease; position: relative;">
+            <input
+              type="file"
+              name="images"
+              id="batchFileInput"
+              accept=".jpg,.jpeg,.png"
+              multiple
+              required
+              style="position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; z-index: 5;"
+            >
+
+            <div id="batchPrompt" style="display: flex; flex-direction: column; align-items: center; gap: var(--space-2);">
+              <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--surface); display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); color: var(--text-faint);">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                </svg>
+              </div>
+              <div style="font-weight: 500; color: var(--text-main); font-size: var(--fs-base);">
+                Drop up to 10 plate images here, or <span style="color: var(--accent); text-decoration: underline;">browse files</span>
+              </div>
+              <div style="font-size: var(--fs-xs); color: var(--text-faint); font-family: var(--font-mono);">
+                Maximum 10 images &middot; PNG or JPEG &middot; Up to 5 MB per file
+              </div>
+            </div>
+          </div>
+
+          <!-- Preview Grid for Selected Images -->
+          <div id="filePreviewContainer" style="display: none; margin-top: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-3); background: var(--surface);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-2); padding-bottom: var(--space-1); border-bottom: 1px solid var(--border-subtle);">
+              <span style="font-size: var(--fs-xs); font-weight: 600; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.5px;">Queue Preview</span>
+              <button type="button" id="btnClearFiles" class="btn btn-ghost btn-sm" style="color: var(--status-danger-text); padding: 2px 6px; font-size: 11px;">
+                Clear Selection
+              </button>
+            </div>
+            <div id="thumbnailsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: var(--space-2); max-height: 240px; overflow-y: auto;">
+              <!-- Dynamically injected thumbnails -->
+            </div>
+          </div>
+
+          <div id="batchWarning" class="status-callout-notice danger" style="display: none; margin-top: var(--space-3); padding: var(--space-3); font-size: var(--fs-xs);">
+            You have selected more than 10 images. Please remove excess files before submitting.
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Action Footer -->
+      <div class="panel-footer" style="padding: var(--space-4) var(--space-5); background: var(--ground); border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; border-bottom-left-radius: var(--radius-lg); border-bottom-right-radius: var(--radius-lg);">
+        <a href="{{ history_url }}" class="btn btn-ghost">Cancel</a>
+
+        <button type="submit" id="btnSubmitBatch" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: var(--space-2);">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+          </svg>
+          <span id="btnSubmitText">Start Batch Inspection</span>
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Right: Operational Protocols -->
+  <div style="display: flex; flex-direction: column; gap: var(--space-4);">
+
+    <!-- Batch Pipeline Guarantees Card -->
+    <div class="panel" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-subtle);">
+      <div class="panel-header" style="padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--border);">
+        <h3 style="font-size: var(--fs-base); font-weight: 600; color: var(--text-main); margin: 0; display: flex; align-items: center; gap: var(--space-2);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent);">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          </svg>
+          Batch Pipeline Execution
+        </h3>
+      </div>
+      <div class="panel-body" style="padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-3); font-size: var(--fs-sm); color: var(--text-muted); line-height: 1.5;">
+        <div style="display: flex; gap: var(--space-3); align-items: flex-start;">
+          <div style="width: 24px; height: 24px; border-radius: 50%; background: var(--status-success-bg); color: var(--status-success-text); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; flex-shrink: 0;">1</div>
+          <div>
+            <strong style="color: var(--text-main);">Isolated Pre-Validation</strong>
+            <p style="margin: 2px 0 0 0; font-size: var(--fs-xs); color: var(--text-faint);">Each image is validated independently for size, dimension, and MIME header.</p>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: var(--space-3); align-items: flex-start;">
+          <div style="width: 24px; height: 24px; border-radius: 50%; background: var(--status-info-bg); color: var(--status-info-text); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; flex-shrink: 0;">2</div>
+          <div>
+            <strong style="color: var(--text-main);">Sequential Model Inference</strong>
+            <p style="margin: 2px 0 0 0; font-size: var(--fs-xs); color: var(--text-faint);">Valid images are dispatched to the Ridge CV classifier; latency is ~25ms per plate.</p>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: var(--space-3); align-items: flex-start;">
+          <div style="width: 24px; height: 24px; border-radius: 50%; background: var(--status-warning-bg); color: var(--status-warning-text); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; flex-shrink: 0;">3</div>
+          <div>
+            <strong style="color: var(--text-main);">Zero-Abort Policy</strong>
+            <p style="margin: 2px 0 0 0; font-size: var(--fs-xs); color: var(--text-faint);">Corrupted or non-compliant files record an individual failure reason without blocking the batch.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Reference Card -->
+    <div class="panel" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-subtle);">
+      <div class="panel-header" style="padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--border);">
+        <h3 style="font-size: var(--fs-base); font-weight: 600; color: var(--text-main); margin: 0;">
+          Throughput Limits
+        </h3>
+      </div>
+      <div class="panel-body" style="padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-2); font-size: var(--fs-xs); font-family: var(--font-mono);">
+        <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--border-subtle);">
+          <span style="color: var(--text-faint);">Batch Minimum:</span>
+          <span style="font-weight: 600; color: var(--text-main);">1 File</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--border-subtle);">
+          <span style="color: var(--text-faint);">Batch Maximum:</span>
+          <span style="font-weight: 600; color: var(--text-main);">10 Files</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--border-subtle);">
+          <span style="color: var(--text-faint);">File Size Limit:</span>
+          <span style="font-weight: 600; color: var(--text-main);">5.0 MB per image</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding: 4px 0;">
+          <span style="color: var(--text-faint);">Reporting:</span>
+          <span style="font-weight: 600; color: var(--status-success-text);">Automated Batch ID</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- Batch Client-Side Live Grid Script -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const fileInput = document.getElementById("batchFileInput");
+  const fileCounterBadge = document.getElementById("fileCounterBadge");
+  const previewContainer = document.getElementById("filePreviewContainer");
+  const thumbnailsGrid = document.getElementById("thumbnailsGrid");
+  const btnClearFiles = document.getElementById("btnClearFiles");
+  const batchWarning = document.getElementById("batchWarning");
+  const btnSubmit = document.getElementById("btnSubmitBatch");
+  const btnSubmitText = document.getElementById("btnSubmitText");
+  const form = document.getElementById("batchInspectionForm");
+  const dropzone = document.getElementById("batchDropzone");
+
+  if (!fileInput) return;
+
+  function renderFiles() {
+    const files = Array.from(fileInput.files);
+    fileCounterBadge.textContent = files.length + " / 10 Selected";
+
+    if (files.length === 0) {
+      previewContainer.style.display = "none";
+      batchWarning.style.display = "none";
+      btnSubmit.disabled = false;
+      btnSubmitText.textContent = "Start Batch Inspection";
+      return;
+    }
+
+    if (files.length > 10) {
+      fileCounterBadge.className = "badge badge-danger";
+      batchWarning.style.display = "block";
+      btnSubmit.disabled = true;
+    } else {
+      fileCounterBadge.className = "badge badge-neutral";
+      batchWarning.style.display = "none";
+      btnSubmit.disabled = false;
+      btnSubmitText.textContent = `Start Batch Inspection (${files.length} Image${files.length > 1 ? 's' : ''})`;
+    }
+
+    previewContainer.style.display = "block";
+    thumbnailsGrid.innerHTML = "";
+
+    files.slice(0, 10).forEach((file, index) => {
+      const card = document.createElement("div");
+      card.style.cssText = "border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 4px; background: var(--ground); font-size: 10px; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center;";
+
+      const img = document.createElement("img");
+      img.style.cssText = "width: 100%; height: 60px; object-fit: cover; border-radius: 2px;";
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+
+      const nameLabel = document.createElement("span");
+      nameLabel.style.cssText = "font-family: var(--font-mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100px; color: var(--text-main);";
+      nameLabel.textContent = file.name;
+
+      card.appendChild(img);
+      card.appendChild(nameLabel);
+      thumbnailsGrid.appendChild(card);
+    });
+  }
+
+  fileInput.addEventListener("change", renderFiles);
+
+  ["dragenter", "dragover"].forEach(eventName => {
+    dropzone.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      dropzone.style.borderColor = "var(--accent)";
+      dropzone.style.background = "var(--accent-subtle)";
+    });
+  });
+
+  ["dragleave", "drop"].forEach(eventName => {
+    dropzone.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      dropzone.style.borderColor = "var(--border-strong)";
+      dropzone.style.background = "var(--ground)";
+    });
+  });
+
+  btnClearFiles.addEventListener("click", function () {
+    fileInput.value = "";
+    renderFiles();
+  });
+
+  form.addEventListener("submit", function () {
+    if (fileInput.files.length > 0 && fileInput.files.length <= 10) {
+      btnSubmit.disabled = true;
+      btnSubmit.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite;">
+          <circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle>
+          <path d="M12 2a10 10 0 0 1 10 10" stroke-opacity="1"></path>
+        </svg>
+        <span>Processing Batch Pipeline...</span>
+      `;
+    }
+  });
+});
+</script>
+<style>
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+</style>
+{% endblock %}

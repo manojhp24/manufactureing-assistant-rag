@@ -1,0 +1,488 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Batch Inspection #{{ batch.id }} &middot; MMA Industrial{% endblock %}
+
+{% block current_breadcrumb %}Batch #{{ batch.id }}{% endblock %}
+
+{% block content %}
+{% url 'inspection:batch_upload' as batch_upload_url %}
+{% url 'inspection:upload_inspection' as single_upload_url %}
+{% url 'inspection:inspection_history' as history_url %}
+
+<!-- Operational Header -->
+<div class="page-header" style="flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-4);">
+  <div class="page-header-title-block">
+    <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;">
+      <h1 class="page-h1" style="font-family: var(--font-mono);">Batch Inspection #{{ batch.id }}</h1>
+
+      <span id="batchStatusBadge">
+        {% if batch.status == "completed" %}
+          <span class="badge badge-success" style="font-size: 12px; font-weight: 600;">
+            <span class="badge-dot"></span> Batch Completed
+          </span>
+        {% elif batch.status == "failed" %}
+          <span class="badge badge-danger" style="font-size: 12px; font-weight: 600;">
+            <span class="badge-dot"></span> Batch Failed
+          </span>
+        {% elif batch.status == "processing" %}
+          <span class="badge badge-warning" style="font-size: 12px; font-weight: 600;">
+            <span class="badge-dot"></span> Processing
+          </span>
+        {% else %}
+          <span class="badge badge-neutral" style="font-size: 12px; font-weight: 600;">
+            <span class="badge-dot"></span> Queued
+          </span>
+        {% endif %}
+      </span>
+
+      <span class="badge badge-neutral" style="font-family: var(--font-mono); font-size: 11px;">
+        {{ batch.product.product_id }}
+      </span>
+    </div>
+    <p class="page-subtitle">
+      Product: <strong>{{ batch.product.name }}</strong> &middot; Submitted by <strong>{{ batch.submitted_by.username }}</strong> on {{ batch.created_at|date:"d M Y, H:i:s" }}
+    </p>
+  </div>
+
+  <div class="page-actions" style="display: flex; gap: var(--space-2); flex-wrap: wrap;">
+    <a href="{{ batch_upload_url }}" class="btn btn-primary">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+      </svg>
+      New Batch
+    </a>
+    <a href="{{ single_upload_url }}" class="btn btn-secondary">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+        <circle cx="12" cy="13" r="4"></circle>
+      </svg>
+      Single Inspection
+    </a>
+    <a href="{{ history_url }}" class="btn btn-ghost">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <polyline points="12 6 12 12 16 14"></polyline>
+      </svg>
+      History
+    </a>
+  </div>
+</div>
+
+<!-- Live Pipeline Monitor Banner (Active when items are in queue) -->
+<div id="livePipelineBanner" style="{% if not has_queued %}display: none;{% endif %} margin-bottom: var(--space-4); background: var(--status-info-bg); border: 1px solid var(--status-info-border); border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5);">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-2); flex-wrap: wrap; gap: var(--space-2);">
+    <div style="display: flex; align-items: center; gap: var(--space-2); color: var(--status-info-text); font-weight: 600; font-size: var(--fs-sm);">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite;">
+        <circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle>
+        <path d="M12 2a10 10 0 0 1 10 10"></path>
+      </svg>
+      <span id="pipelineStatusText">Sequential Batch Pipeline Active &mdash; Following queue items...</span>
+    </div>
+    <span id="pipelineProgressLabel" style="font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--status-info-text); font-weight: 600;">
+      {{ batch.completed_files|add:batch.failed_files }} / {{ batch.total_files }} Processed
+    </span>
+  </div>
+  <div style="width: 100%; height: 6px; background: rgba(3, 105, 161, 0.15); border-radius: var(--radius-pill); overflow: hidden;">
+    <div id="pipelineProgressBar" style="width: {% widthratio batch.completed_files|add:batch.failed_files batch.total_files 100 %}%; height: 100%; background: var(--accent); border-radius: var(--radius-pill); transition: width 0.3s ease;"></div>
+  </div>
+</div>
+
+<!-- Industrial KPI Metric Strip -->
+<div class="kpi-strip" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--space-3); margin-bottom: var(--space-5);">
+  <div class="kpi-cell" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-4);">
+    <div class="kpi-label" style="font-size: var(--fs-xs); color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Total Evaluated</div>
+    <div class="kpi-value-row" style="margin-top: 4px;">
+      <span class="kpi-value" id="kpiTotal" style="font-family: var(--font-mono); font-size: var(--fs-kpi); font-weight: 700; color: var(--text-main);">{{ batch.total_files }}</span>
+    </div>
+    <div class="kpi-subtext" style="font-size: 11px; color: var(--text-faint);">100% Ingested</div>
+  </div>
+
+  <div class="kpi-cell" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-4);">
+    <div class="kpi-label" style="font-size: var(--fs-xs); color: var(--status-success-text); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Normal (Passed)</div>
+    <div class="kpi-value-row" style="margin-top: 4px;">
+      <span class="kpi-value" id="kpiNormal" style="font-family: var(--font-mono); font-size: var(--fs-kpi); font-weight: 700; color: var(--status-success-text);">{{ normal_count|default:0 }}</span>
+    </div>
+    <div class="kpi-subtext" style="font-size: 11px; color: var(--status-success-text);">Clean component surfaces</div>
+  </div>
+
+  <div class="kpi-cell" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-4);">
+    <div class="kpi-label" style="font-size: var(--fs-xs); color: var(--status-danger-text); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Defective (Rejected)</div>
+    <div class="kpi-value-row" style="margin-top: 4px;">
+      <span class="kpi-value" id="kpiDefective" style="font-family: var(--font-mono); font-size: var(--fs-kpi); font-weight: 700; color: var(--status-danger-text);">{{ defective_count|default:0 }}</span>
+    </div>
+    <div class="kpi-subtext" style="font-size: 11px; color: var(--status-danger-text);">Flagged for QA review</div>
+  </div>
+
+  <div class="kpi-cell" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-4);">
+    <div class="kpi-label" style="font-size: var(--fs-xs); color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Pipeline Failures</div>
+    <div class="kpi-value-row" style="margin-top: 4px;">
+      <span class="kpi-value" id="kpiFailed" style="font-family: var(--font-mono); font-size: var(--fs-kpi); font-weight: 700; color: {% if batch.failed_files > 0 %}var(--status-danger-text){% else %}var(--text-disabled){% endif %};">{{ batch.failed_files }}</span>
+    </div>
+    <div class="kpi-subtext" style="font-size: 11px; color: var(--text-faint);">Invalid format / corrupt</div>
+  </div>
+</div>
+
+<!-- Batch Items Table Panel -->
+<div class="panel" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-subtle); overflow: hidden;">
+  <div class="panel-header" style="padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+    <div class="panel-title-block">
+      <h2 class="panel-title" style="font-size: var(--fs-md); font-weight: 600; color: var(--text-main); margin: 0;">Inspection Queue Telemetry</h2>
+      <span class="panel-caption" style="font-size: var(--fs-xs); color: var(--text-faint);">Follow item status transitions from Queued &rarr; Processing &rarr; Completed / Failed</span>
+    </div>
+    <span class="badge badge-neutral" style="font-family: var(--font-mono); font-size: 11px;">
+      {{ batch.inspections.count }} Items in Batch
+    </span>
+  </div>
+
+  <div class="panel-body" style="padding: 0;">
+    <div class="table-responsive">
+      <table class="table" style="margin: 0; width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="background: var(--ground); border-bottom: 1px solid var(--border);">
+            <th style="padding: var(--space-3) var(--space-4); font-size: var(--fs-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; width: 80px;">Item</th>
+            <th style="padding: var(--space-3) var(--space-4); font-size: var(--fs-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Component Image</th>
+            <th style="padding: var(--space-3) var(--space-4); font-size: var(--fs-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">AI Verdict</th>
+            <th style="padding: var(--space-3) var(--space-4); font-size: var(--fs-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Confidence</th>
+            <th style="padding: var(--space-3) var(--space-4); font-size: var(--fs-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Defect Prob</th>
+            <th style="padding: var(--space-3) var(--space-4); font-size: var(--fs-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Status</th>
+            <th style="padding: var(--space-3) var(--space-4); font-size: var(--fs-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; text-align: right;">Action</th>
+          </tr>
+        </thead>
+        <tbody id="batchTableBody">
+          {% for item in batch.inspections.all %}
+          <tr id="row-{{ item.id }}" data-id="{{ item.id }}" data-status="{{ item.status }}" style="border-bottom: 1px solid var(--border-subtle); transition: background 0.15s ease;">
+            <!-- ID -->
+            <td style="padding: var(--space-3) var(--space-4); font-family: var(--font-mono); font-size: var(--fs-sm); font-weight: 600; color: var(--text-main);">
+              #{{ item.id }}
+            </td>
+
+            <!-- Thumbnail & Filename -->
+            <td style="padding: var(--space-3) var(--space-4);">
+              <div style="display: flex; align-items: center; gap: var(--space-3);">
+                {% if item.image %}
+                  <img
+                    src="{{ item.image.url }}"
+                    alt="Plate thumbnail"
+                    style="width: 38px; height: 38px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--border); background: #0f172a;"
+                  >
+                {% else %}
+                  <div style="width: 38px; height: 38px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--ground); display: flex; align-items: center; justify-content: center; color: var(--text-disabled);">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="1" y1="1" x2="23" y2="23"></line>
+                    </svg>
+                  </div>
+                {% endif %}
+                <div>
+                  <div style="font-family: var(--font-mono); font-size: var(--fs-sm); font-weight: 500; color: var(--text-main);">
+                    {{ item.original_filename|default:item.image.name }}
+                  </div>
+                  <div style="font-size: 11px; color: var(--text-faint);">
+                    {{ item.created_at|date:"H:i:s" }}
+                  </div>
+                </div>
+              </div>
+            </td>
+
+            <!-- Verdict -->
+            <td id="verdict-{{ item.id }}" style="padding: var(--space-3) var(--space-4);">
+              {% if item.predicted_class == "Normal" %}
+                <span class="badge badge-success" style="font-weight: 600;">
+                  <span class="badge-dot"></span> Normal
+                </span>
+              {% elif item.predicted_class == "Defective" %}
+                <span class="badge badge-danger" style="font-weight: 600;">
+                  <span class="badge-dot"></span> Defective
+                </span>
+              {% elif item.status == "failed" %}
+                <span class="badge badge-danger">Failed</span>
+              {% else %}
+                <span style="color: var(--text-disabled);">&mdash;</span>
+              {% endif %}
+            </td>
+
+            <!-- Confidence -->
+            <td id="confidence-{{ item.id }}" style="padding: var(--space-3) var(--space-4);">
+              {% if item.confidence is not None %}
+                <div style="display: flex; align-items: center; gap: var(--space-2);">
+                  <span style="font-family: var(--font-mono); font-size: var(--fs-sm); font-weight: 600; color: var(--text-main);">
+                    {{ item.confidence|floatformat:4 }}
+                  </span>
+                  <div style="width: 48px; height: 5px; background: var(--raised); border-radius: var(--radius-pill); overflow: hidden;">
+                    <div style="width: {% widthratio item.confidence 1 100 %}%; height: 100%; background: {% if item.predicted_class == 'Normal' %}var(--status-success-text){% else %}var(--status-danger-text){% endif %};"></div>
+                  </div>
+                </div>
+              {% else %}
+                <span style="color: var(--text-disabled);">&mdash;</span>
+              {% endif %}
+            </td>
+
+            <!-- Defect Prob -->
+            <td id="defect-{{ item.id }}" style="padding: var(--space-3) var(--space-4);">
+              {% if item.defect_probability is not None %}
+                <span style="font-family: var(--font-mono); font-size: var(--fs-sm); color: {% if item.defect_probability >= 0.5 %}var(--status-danger-text){% else %}var(--status-success-text){% endif %}; font-weight: 500;">
+                  {{ item.defect_probability|floatformat:4 }}
+                </span>
+              {% else %}
+                <span style="color: var(--text-disabled);">&mdash;</span>
+              {% endif %}
+            </td>
+
+            <!-- Status & Failure Note -->
+            <td id="status-{{ item.id }}" style="padding: var(--space-3) var(--space-4);">
+              {% if item.status == "completed" %}
+                <span class="badge badge-success">Completed</span>
+              {% elif item.status == "failed" %}
+                <div style="display: flex; flex-direction: column; gap: 2px;">
+                  <span class="badge badge-danger">Failed</span>
+                  <span style="font-size: 11px; color: var(--status-danger-text); font-family: var(--font-mono); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ item.failure_reason }}">
+                    {{ item.failure_reason|default:"Validation Error" }}
+                  </span>
+                </div>
+              {% elif item.status == "processing" %}
+                <span class="badge badge-warning" style="display: inline-flex; align-items: center; gap: 4px;">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite;"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle><path d="M12 2a10 10 0 0 1 10 10"></path></svg>
+                  Processing
+                </span>
+              {% else %}
+                <span class="badge badge-neutral" style="display: inline-flex; align-items: center; gap: 4px;">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+                  Queued
+                </span>
+              {% endif %}
+            </td>
+
+            <!-- Action -->
+            <td id="action-{{ item.id }}" style="padding: var(--space-3) var(--space-4); text-align: right;">
+              <a href="{% url 'inspection:inspection_detail' item.id %}" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 4px;">
+                <span>View</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" style="text-align: center; padding: var(--space-6); color: var(--text-faint);">
+              No inspection records found in this batch.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top: var(--space-4);">
+  <a href="{{ history_url }}" class="btn btn-ghost">
+    &larr; Back to Inspection History
+  </a>
+</div>
+
+<!-- Sequential Batch Processing Pipeline Script -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const batchId = {{ batch.id }};
+  const processNextUrl = "{% url 'inspection:batch_process_next' batch.id %}";
+  const hasQueued = {{ has_queued|yesno:"true,false" }};
+
+  const banner = document.getElementById("livePipelineBanner");
+  const statusText = document.getElementById("pipelineStatusText");
+  const progressLabel = document.getElementById("pipelineProgressLabel");
+  const progressBar = document.getElementById("pipelineProgressBar");
+
+  const kpiTotal = document.getElementById("kpiTotal");
+  const kpiNormal = document.getElementById("kpiNormal");
+  const kpiDefective = document.getElementById("kpiDefective");
+  const kpiFailed = document.getElementById("kpiFailed");
+  const batchStatusBadge = document.getElementById("batchStatusBadge");
+
+  if (!hasQueued) {
+    return;
+  }
+
+  function updateRowToProcessing(row) {
+    if (!row) return;
+    const itemId = row.getAttribute("data-id");
+    row.setAttribute("data-status", "processing");
+    row.style.background = "var(--accent-subtle)";
+
+    const statusCell = document.getElementById("status-" + itemId);
+    if (statusCell) {
+      statusCell.innerHTML = `
+        <span class="badge badge-warning" style="display: inline-flex; align-items: center; gap: 4px;">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite;">
+            <circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle>
+            <path d="M12 2a10 10 0 0 1 10 10"></path>
+          </svg>
+          Processing
+        </span>
+      `;
+    }
+  }
+
+  function updateRowFromItem(item) {
+    const row = document.getElementById("row-" + item.id);
+    if (!row) return;
+
+    row.setAttribute("data-status", item.status);
+    row.style.background = "var(--surface)";
+
+    // Update Verdict
+    const verdictCell = document.getElementById("verdict-" + item.id);
+    if (verdictCell) {
+      if (item.predicted_class === "Normal") {
+        verdictCell.innerHTML = `<span class="badge badge-success" style="font-weight: 600;"><span class="badge-dot"></span> Normal</span>`;
+      } else if (item.predicted_class === "Defective") {
+        verdictCell.innerHTML = `<span class="badge badge-danger" style="font-weight: 600;"><span class="badge-dot"></span> Defective</span>`;
+      } else if (item.status === "failed") {
+        verdictCell.innerHTML = `<span class="badge badge-danger">Failed</span>`;
+      } else {
+        verdictCell.innerHTML = `&mdash;`;
+      }
+    }
+
+    // Update Confidence
+    const confCell = document.getElementById("confidence-" + item.id);
+    if (confCell) {
+      if (item.confidence !== null) {
+        const pct = Math.round(item.confidence * 100);
+        const barColor = item.predicted_class === 'Normal' ? 'var(--status-success-text)' : 'var(--status-danger-text)';
+        confCell.innerHTML = `
+          <div style="display: flex; align-items: center; gap: var(--space-2);">
+            <span style="font-family: var(--font-mono); font-size: var(--fs-sm); font-weight: 600; color: var(--text-main);">${item.confidence.toFixed(4)}</span>
+            <div style="width: 48px; height: 5px; background: var(--raised); border-radius: var(--radius-pill); overflow: hidden;">
+              <div style="width: ${pct}%; height: 100%; background: ${barColor};"></div>
+            </div>
+          </div>
+        `;
+      } else {
+        confCell.innerHTML = `&mdash;`;
+      }
+    }
+
+    // Update Defect Probability
+    const defectCell = document.getElementById("defect-" + item.id);
+    if (defectCell) {
+      if (item.defect_probability !== null) {
+        const textColor = item.defect_probability >= 0.5 ? 'var(--status-danger-text)' : 'var(--status-success-text)';
+        defectCell.innerHTML = `
+          <span style="font-family: var(--font-mono); font-size: var(--fs-sm); color: ${textColor}; font-weight: 500;">
+            ${item.defect_probability.toFixed(4)}
+          </span>
+        `;
+      } else {
+        defectCell.innerHTML = `&mdash;`;
+      }
+    }
+
+    // Update Status
+    const statusCell = document.getElementById("status-" + item.id);
+    if (statusCell) {
+      if (item.status === "completed") {
+        statusCell.innerHTML = `<span class="badge badge-success">Completed</span>`;
+      } else if (item.status === "failed") {
+        statusCell.innerHTML = `
+          <div style="display: flex; flex-direction: column; gap: 2px;">
+            <span class="badge badge-danger">Failed</span>
+            <span style="font-size: 11px; color: var(--status-danger-text); font-family: var(--font-mono); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${item.failure_reason || ''}">
+              ${item.failure_reason || 'Validation Error'}
+            </span>
+          </div>
+        `;
+      }
+    }
+  }
+
+  function updateBatchSummary(batchData) {
+    if (kpiTotal) kpiTotal.textContent = batchData.total;
+    if (kpiNormal) kpiNormal.textContent = batchData.normal;
+    if (kpiDefective) kpiDefective.textContent = batchData.defective;
+    if (kpiFailed) {
+      kpiFailed.textContent = batchData.failed;
+      kpiFailed.style.color = batchData.failed > 0 ? "var(--status-danger-text)" : "var(--text-disabled)";
+    }
+
+    const processed = batchData.completed + batchData.failed;
+    const pct = batchData.total > 0 ? Math.round((processed / batchData.total) * 100) : 100;
+
+    if (progressLabel) {
+      progressLabel.textContent = `${processed} / ${batchData.total} Processed (${pct}%)`;
+    }
+    if (progressBar) {
+      progressBar.style.width = pct + "%";
+    }
+
+    if (batchStatusBadge) {
+      if (batchData.status === "completed") {
+        batchStatusBadge.innerHTML = `<span class="badge badge-success" style="font-size: 12px; font-weight: 600;"><span class="badge-dot"></span> Batch Completed</span>`;
+      } else if (batchData.status === "failed") {
+        batchStatusBadge.innerHTML = `<span class="badge badge-danger" style="font-size: 12px; font-weight: 600;"><span class="badge-dot"></span> Batch Failed</span>`;
+      } else {
+        batchStatusBadge.innerHTML = `<span class="badge badge-warning" style="font-size: 12px; font-weight: 600;"><span class="badge-dot"></span> Processing</span>`;
+      }
+    }
+  }
+
+  function processNextStep() {
+    const nextQueuedRow = document.querySelector('tr[data-status="queued"]');
+    if (nextQueuedRow) {
+      updateRowToProcessing(nextQueuedRow);
+    }
+
+    fetch(processNextUrl, {
+      method: "GET",
+      headers: {
+        "X-Requested-With": "XMLHttpRequest"
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.item) {
+        updateRowFromItem(data.item);
+      }
+      if (data.batch) {
+        updateBatchSummary(data.batch);
+      }
+
+      if (data.has_more) {
+        // Smooth sequential cadence to let the engineer observe the transition
+        setTimeout(processNextStep, 350);
+      } else {
+        // Pipeline finished
+        if (banner) {
+          banner.style.background = "var(--status-success-bg)";
+          banner.style.borderColor = "var(--status-success-border)";
+          statusText.innerHTML = `
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color: var(--status-success-text);">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+            <span style="color: var(--status-success-text); font-weight: 600;">Batch Pipeline Complete &mdash; All items evaluated</span>
+          `;
+          progressBar.style.background = "var(--status-success-text)";
+        }
+      }
+    })
+    .catch(err => {
+      console.error("Batch processing error:", err);
+      if (statusText) {
+        statusText.textContent = "Pipeline paused. Refresh to resume.";
+      }
+    });
+  }
+
+  // Trigger the live execution loop
+  setTimeout(processNextStep, 400);
+});
+</script>
+<style>
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+</style>
+{% endblock %}

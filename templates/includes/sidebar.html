@@ -169,6 +169,91 @@ Roles supported: Administrator, Engineer, Supervisor
         </div>
       {% endif %}
 
+      {# Vision QA & Visual Inspection (Role-Aware Operations) #}
+      <div class="nav-group">
+        <div class="nav-group-title">Vision QA &amp; Inspection</div>
+        <ul class="sidebar-nav-list">
+
+          {# 1. Administrator: Product Registration & Fleet Management ONLY (Inspection/Audit removed for Admin) #}
+          {% if user.is_superuser or user_role == "administrator" or is_admin or "Administrator" in user.groups.all|stringformat:"s" %}
+            <li class="sidebar-nav-item">
+              <a href="{% url 'inspection:product_list' %}" class="sidebar-nav-link {% if current_url == 'product_list' or current_url == 'product_edit' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                  <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                </svg>
+                <span>Product Catalog</span>
+              </a>
+            </li>
+            <li class="sidebar-nav-item">
+              <a href="{% url 'inspection:product_create' %}" class="sidebar-nav-link {% if current_url == 'product_create' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="16"></line>
+                  <line x1="8" y1="12" x2="16" y2="12"></line>
+                </svg>
+                <span>Register Product</span>
+              </a>
+            </li>
+
+          {# 2. Supervisor: Quality Audit Log & Model Benchmark ONLY (Single & Batch Inspection removed for Supervisor) #}
+          {% elif user_role == "supervisor" or "Supervisor" in user.groups.all|stringformat:"s" %}
+            <li class="sidebar-nav-item">
+              <a href="{% url 'inspection:inspection_history' %}" class="sidebar-nav-link {% if current_url == 'inspection_history' or current_url == 'inspection_detail' or current_url == 'review_inspection' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                </svg>
+                <span>Quality Audit Log</span>
+              </a>
+            </li>
+            <li class="sidebar-nav-item">
+              <a href="{% url 'inspection:model_evaluation' %}" class="sidebar-nav-link {% if current_url == 'model_evaluation' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                </svg>
+                <span>Model Benchmark</span>
+              </a>
+            </li>
+
+          {# 3. Engineer: Single & Batch Quality Inspection + Personal Run History #}
+          {% else %}
+            <li class="sidebar-nav-item">
+              <a href="{% url 'inspection:upload_inspection' %}" class="sidebar-nav-link {% if current_url == 'upload_inspection' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                  <circle cx="12" cy="13" r="4"></circle>
+                </svg>
+                <span>Single Inspection</span>
+              </a>
+            </li>
+            <li class="sidebar-nav-item">
+              <a href="{% url 'inspection:batch_upload' %}" class="sidebar-nav-link {% if current_url == 'batch_upload' or current_url == 'batch_detail' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                </svg>
+                <span>Batch Inspection</span>
+              </a>
+            </li>
+            <li class="sidebar-nav-item">
+              <a href="{% url 'inspection:inspection_history' %}" class="sidebar-nav-link {% if current_url == 'inspection_history' or current_url == 'inspection_detail' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                </svg>
+                <span>Inspection History</span>
+              </a>
+            </li>
+          {% endif %}
+
+        </ul>
+      </div>
+
     {% endwith %}
   </div>
 

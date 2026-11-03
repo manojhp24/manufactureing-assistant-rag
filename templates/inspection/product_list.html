@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Supported Products &middot; MMA Industrial{% endblock %}
+
+{% block current_breadcrumb %}Product Catalog{% endblock %}
+
+{% block content %}
+{% url 'inspection:product_create' as product_create_url %}
+
+<!-- Operational Header -->
+<div class="page-header" style="flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-4);">
+  <div class="page-header-title-block">
+    <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;">
+      <h1 class="page-h1">Supported Products Catalog</h1>
+      <span class="badge badge-info" style="font-family: var(--font-mono); font-size: 11px;">
+        Administrator Operations
+      </span>
+      <span class="badge badge-neutral" style="font-family: var(--font-mono); font-size: 11px;">
+        Vision QA Registry
+      </span>
+    </div>
+    <p class="page-subtitle">Configure manufactured plate models authorized for automated deep learning defect inspection</p>
+  </div>
+
+  <div class="page-actions" style="display: flex; gap: var(--space-2); flex-wrap: wrap;">
+    <a href="{{ product_create_url }}" class="btn btn-primary">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+      Register Product
+    </a>
+  </div>
+</div>
+
+<!-- KPI Metric Strip -->
+<div class="kpi-strip" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--space-3); margin-bottom: var(--space-5);">
+  <div class="kpi-cell" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-4);">
+    <div class="kpi-label" style="font-size: var(--fs-xs); color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Registered Models</div>
+    <div class="kpi-value-row" style="margin-top: 4px;">
+      <span class="kpi-value" style="font-family: var(--font-mono); font-size: var(--fs-kpi); font-weight: 700; color: var(--text-main);">{{ total_products }}</span>
+    </div>
+    <div class="kpi-subtext" style="font-size: 11px; color: var(--text-faint);">Total product codes</div>
+  </div>
+
+  <div class="kpi-cell" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-4);">
+    <div class="kpi-label" style="font-size: var(--fs-xs); color: var(--status-success-text); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Active in Fleet</div>
+    <div class="kpi-value-row" style="margin-top: 4px;">
+      <span class="kpi-value" style="font-family: var(--font-mono); font-size: var(--fs-kpi); font-weight: 700; color: var(--status-success-text);">{{ active_products }}</span>
+    </div>
+    <div class="kpi-subtext" style="font-size: 11px; color: var(--status-success-text);">Available for inspection</div>
+  </div>
+
+  <div class="kpi-cell" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-4);">
+    <div class="kpi-label" style="font-size: var(--fs-xs); color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Classifier Engine</div>
+    <div class="kpi-value-row" style="margin-top: 4px;">
+      <span class="kpi-value" style="font-family: var(--font-mono); font-size: var(--fs-lg); font-weight: 700; color: var(--text-main);">BIT-PLATE-CV-1.0</span>
+    </div>
+    <div class="kpi-subtext" style="font-size: 11px; color: var(--status-success-text);">128&times;128 Feature Model</div>
+  </div>
+</div>
+
+<!-- Products Table Panel -->
+<div class="panel" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-subtle); overflow: hidden;">
+  <div class="panel-header" style="padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+    <div class="panel-title-block">
+      <h2 class="panel-title" style="font-size: var(--fs-md); font-weight: 600; color: var(--text-main); margin: 0;">Authorized Product Fleet</h2>
+      <span class="panel-caption" style="font-size: var(--fs-xs); color: var(--text-faint);">Plate models enabled for engineer upload and defect detection</span>
+    </div>
+  </div>
+
+  <div class="panel-body" style="padding: 0;">
+    <div class="table-responsive">
+      <table class="table" style="margin: 0; width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="background: var(--ground); border-bottom: 1px solid var(--border);">
+            <th style="padding: var(--space-3) var(--space-4); font-size: var(--fs-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; width: 140px;">Product Code</th>
+            <th style="padding: var(--space-3) var(--space-4); font-size: var(--fs-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Product Name</th>
+            <th style="padding: var(--space-3) var(--space-4); font-size: var(--fs-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Status</th>
+            <th style="padding: var(--space-3) var(--space-4); font-size: var(--fs-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Evaluations</th>
+            <th style="padding: var(--space-3) var(--space-4); font-size: var(--fs-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Passed (Normal)</th>
+            <th style="padding: var(--space-3) var(--space-4); font-size: var(--fs-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Rejected (Defect)</th>
+            <th style="padding: var(--space-3) var(--space-4); font-size: var(--fs-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Registered</th>
+            <th style="padding: var(--space-3) var(--space-4); font-size: var(--fs-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; text-align: right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in product_stats %}
+          <tr style="border-bottom: 1px solid var(--border-subtle); transition: background 0.15s ease;">
+            <!-- Product ID -->
+            <td style="padding: var(--space-3) var(--space-4); font-family: var(--font-mono); font-size: var(--fs-sm); font-weight: 700; color: var(--text-main);">
+              <span class="badge badge-neutral" style="font-size: 12px; font-weight: 700;">
+                {{ item.product.product_id }}
+              </span>
+            </td>
+
+            <!-- Name & Description -->
+            <td style="padding: var(--space-3) var(--space-4);">
+              <div style="font-weight: 600; font-size: var(--fs-sm); color: var(--text-main);">
+                {{ item.product.name }}
+              </div>
+              {% if item.product.description %}
+                <div style="font-size: 11px; color: var(--text-faint); max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                  {{ item.product.description }}
+                </div>
+              {% endif %}
+            </td>
+
+            <!-- Active Status -->
+            <td style="padding: var(--space-3) var(--space-4);">
+              {% if item.product.is_active %}
+                <span class="badge badge-success">
+                  <span class="badge-dot"></span> Active
+                </span>
+              {% else %}
+                <span class="badge badge-neutral">Inactive</span>
+              {% endif %}
+            </td>
+
+            <!-- Ingested Count -->
+            <td style="padding: var(--space-3) var(--space-4); font-family: var(--font-mono); font-size: var(--fs-sm); font-weight: 600; color: var(--text-main);">
+              {{ item.total_inspections }}
+            </td>
+
+            <!-- Normal Count -->
+            <td style="padding: var(--space-3) var(--space-4); font-family: var(--font-mono); font-size: var(--fs-sm); font-weight: 600; color: var(--status-success-text);">
+              {{ item.normal_count }}
+            </td>
+
+            <!-- Defective Count -->
+            <td style="padding: var(--space-3) var(--space-4); font-family: var(--font-mono); font-size: var(--fs-sm); font-weight: 600; color: var(--status-danger-text);">
+              {{ item.defective_count }}
+            </td>
+
+            <!-- Timestamp -->
+            <td style="padding: var(--space-3) var(--space-4); font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-muted);">
+              {{ item.product.created_at|date:"Y-m-d" }}
+            </td>
+
+            <!-- Actions -->
+            <td style="padding: var(--space-3) var(--space-4); text-align: right;">
+              <div style="display: flex; gap: var(--space-1); justify-content: flex-end; align-items: center;">
+                <a href="{% url 'inspection:product_edit' item.product.id %}" class="btn btn-ghost btn-sm" title="Edit specifications">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                  </svg>
+                  Edit
+                </a>
+
+                <form method="POST" action="{% url 'inspection:product_toggle' item.product.id %}" style="display: inline;">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-ghost btn-sm" style="color: {% if item.product.is_active %}var(--status-danger-text){% else %}var(--status-success-text){% endif %};" title="Toggle active status">
+                    {% if item.product.is_active %}Deactivate{% else %}Activate{% endif %}
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" style="text-align: center; padding: var(--space-8); color: var(--text-faint);">
+              <div style="display: flex; flex-direction: column; align-items: center; gap: var(--space-3);">
+                <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--ground); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--text-disabled);">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                  </svg>
+                </div>
+                <div>
+                  <h4 style="margin: 0; font-size: var(--fs-base); color: var(--text-main); font-weight: 600;">No supported products registered</h4>
+                  <p style="margin: 4px 0 0 0; font-size: var(--fs-xs); color: var(--text-faint);">Register product P-PLATE01 to enable plate defect inspection.</p>
+                </div>
+                <a href="{{ product_create_url }}" class="btn btn-primary btn-sm" style="margin-top: var(--space-2);">
+                  Register P-PLATE01
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+

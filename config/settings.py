@@ -47,7 +47,8 @@ INSTALLED_APPS = [
     "accounts",
     "machines",
     "manuals",
-    "assistant"
+    "assistant",
+    "inspection"
 ]
 
 MIDDLEWARE = [
