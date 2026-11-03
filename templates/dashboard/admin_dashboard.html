@@ -1,31 +1,34 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Administrator Operations Console &middot; MMA Industrial{% endblock %}
+{% block title %}Admin Dashboard &middot; MMA Industrial{% endblock %}
 
-{% block current_breadcrumb %}Admin Operations Console{% endblock %}
+{% block current_breadcrumb %}Admin Dashboard{% endblock %}
 
 {% block content %}
 {% url 'upload_manual' as upload_manual_url %}
 {% url 'machine_create' as machine_create_url %}
+{% url 'machine_list' as machine_list_url %}
 {% url 'manual_list' as manual_list_url %}
-{% url 'assistant_chat' as assistant_chat_url %}
-{% url 'supervisor_history' as supervisor_history_url %}
+{% url 'inspection:product_list' as product_list_url %}
+{% url 'inspection:product_create' as product_create_url %}
+{% url 'user_list' as user_list_url %}
+{% url 'user_create' as user_create_url %}
 
-<!-- Dashboard Page Header -->
+<!-- Dashboard Page Header (Simple & Consistent) -->
 <div class="page-header" style="flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-4);">
   <div class="page-header-title-block">
     <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;">
-      <h1 class="page-h1">Plant System Overview</h1>
-      <div class="telemetry-pulse" title="Real-time plant database and RAG telemetry">
+      <h1 class="page-h1">Admin Dashboard</h1>
+      <div class="telemetry-pulse" title="System background processes active">
         <span class="pulse-indicator"></span>
-        <span id="telemetrySyncTime">Telemetry Live &bull; ChromaDB Ready</span>
+        <span id="telemetrySyncTime">Pipelines Active &bull; Processing Normal</span>
       </div>
     </div>
-    <p class="page-subtitle">Equipment fleet telemetry &middot; Manual ingestion pipeline &middot; Vector knowledge base status</p>
+    <p class="page-subtitle">System overview, equipment fleet, and processing pipelines</p>
   </div>
   <div class="page-actions" style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap;">
-    <button type="button" class="btn-refresh" id="syncTelemetryBtn" title="Re-fetch latest dashboard telemetry via partial fetch">
+    <button type="button" class="btn-refresh" id="syncTelemetryBtn" title="Re-fetch latest dashboard telemetry">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
       </svg>
@@ -52,105 +55,60 @@
 
 
 
-<!-- Modern Industrial KPI Metric Grid -->
-<div class="admin-metric-grid" role="region" aria-label="Operational Key Metrics">
+<!-- Consistent Industrial KPI Metric Strip (Matches Engineer & Supervisor Dashboards) -->
+<div class="kpi-strip" role="region" aria-label="Operational Key Metrics" style="margin-bottom: var(--space-5);">
   <!-- Registered Machines -->
-  <div class="admin-stat-card card-primary">
-    <div>
-      <div class="admin-stat-header">
-        <span class="admin-stat-label">Registered Machines</span>
-        <div class="admin-stat-icon">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect width="18" height="18" x="3" y="3" rx="2"></rect>
-            <path d="M7 7h10"></path>
-            <path d="M7 12h10"></path>
-            <path d="M7 17h10"></path>
-          </svg>
-        </div>
-      </div>
-      <div class="admin-stat-value num">{{ total_machines|default:"0" }}</div>
+  <div class="kpi-cell">
+    <span class="kpi-label">Registered Machinery</span>
+    <div class="kpi-value-row">
+      <span class="kpi-value num">{{ total_machines|default:"0" }}</span>
     </div>
-    <div class="admin-stat-footer">
-      <span><strong style="color: var(--text-main);">{{ active_machines|default:"0" }}</strong> active fleet units</span>
-      <span class="badge badge-neutral" style="font-size: 10px; font-family: var(--font-mono);">
-        {{ inactive_machines|default:"0" }} offline
-      </span>
-    </div>
+    <span class="kpi-subtext positive">{{ active_machines|default:"0" }} active fleet units</span>
   </div>
 
   <!-- Technical Manuals Ingested -->
-  <div class="admin-stat-card card-warning">
-    <div>
-      <div class="admin-stat-header">
-        <span class="admin-stat-label">Ingested Manuals</span>
-        <div class="admin-stat-icon">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-            <polyline points="14 2 14 8 20 8"></polyline>
-            <line x1="16" y1="13" x2="8" y2="13"></line>
-            <line x1="16" y1="17" x2="8" y2="17"></line>
-          </svg>
-        </div>
-      </div>
-      <div class="admin-stat-value num">{{ total_manuals|default:"0" }}</div>
+  <div class="kpi-cell">
+    <span class="kpi-label">Ingested Manuals</span>
+    <div class="kpi-value-row">
+      <span class="kpi-value num">{{ total_manuals|default:"0" }}</span>
     </div>
-    <div class="admin-stat-footer">
-      <span><strong style="color: var(--text-main);">{{ total_pages_sum|default:"0" }}</strong> total pages indexed</span>
-      <span class="badge badge-indexed" style="font-size: 10px;">{{ indexed_manuals|default:"0" }} ready</span>
-    </div>
+    <span class="kpi-subtext positive">{{ total_pages_sum|default:"0" }} pages indexed</span>
   </div>
 
-  <!-- Vector Knowledge Chunks -->
-  <div class="admin-stat-card card-success">
-    <div>
-      <div class="admin-stat-header">
-        <span class="admin-stat-label">ChromaDB Chunks</span>
-        <div class="admin-stat-icon">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-            <path d="M3 5V19A9 3 0 0 0 21 19V5"></path>
-            <path d="M3 12A9 3 0 0 0 21 12"></path>
-          </svg>
-        </div>
-      </div>
-      <div class="admin-stat-value num">{{ total_chunks_sum|default:"0" }}</div>
+  <!-- ChromaDB Chunks -->
+  <div class="kpi-cell">
+    <span class="kpi-label">Vector Knowledge Chunks</span>
+    <div class="kpi-value-row">
+      <span class="kpi-value num">{{ total_chunks_sum|default:"0" }}</span>
     </div>
-    <div class="admin-stat-footer">
-      <span>Gemini 1024-dim vectors</span>
-      <span class="badge badge-indexed" style="font-size: 10px;">Storage Active</span>
-    </div>
+    <span class="kpi-subtext">Gemini 1024-dim vectors</span>
   </div>
 
-  <!-- Pipeline Health & Reliability -->
-  <div class="admin-stat-card {% if failed_manuals and failed_manuals > 0 %}card-danger{% else %}card-success{% endif %}">
-    <div>
-      <div class="admin-stat-header">
-        <span class="admin-stat-label">Pipeline Reliability</span>
-        <div class="admin-stat-icon">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-          </svg>
-        </div>
-      </div>
-      <div class="admin-stat-value num" {% if failed_manuals and failed_manuals > 0 %}style="color: var(--status-danger-text);"{% endif %}>
+  <!-- Supported Plate Products -->
+  <div class="kpi-cell">
+    <span class="kpi-label">Supported Products</span>
+    <div class="kpi-value-row">
+      <span class="kpi-value num">{{ total_products|default:"1" }}</span>
+    </div>
+    <span class="kpi-subtext positive">P-PLATE01 model ready</span>
+  </div>
+
+  <!-- Pipeline Reliability -->
+  <div class="kpi-cell">
+    <span class="kpi-label">Pipeline Reliability</span>
+    <div class="kpi-value-row">
+      <span class="kpi-value num" {% if failed_manuals and failed_manuals > 0 %}style="color: var(--status-danger-text);"{% endif %}>
         {{ pipeline_health_pct|default:"100.0" }}%
-      </div>
-    </div>
-    <div class="admin-stat-footer">
-      <span>
-        {% if failed_manuals and failed_manuals > 0 %}
-          <strong style="color: var(--status-danger-text);">{{ failed_manuals }} failed document(s)</strong>
-        {% else %}
-          <strong style="color: var(--status-success-text);">0 ingestion errors</strong>
-        {% endif %}
       </span>
-      <span class="table-code" style="font-size: 10px;">RAG Nominal</span>
     </div>
+    <span class="kpi-subtext {% if failed_manuals and failed_manuals > 0 %}danger{% else %}positive{% endif %}">
+      {% if failed_manuals and failed_manuals > 0 %}{{ failed_manuals }} failed manual(s){% else %}0 ingestion errors{% endif %}
+    </span>
   </div>
 </div>
 
 <!-- Search & Status Filter Toolbar -->
-<div class="dashboard-filter-bar">
+<div class="dashboard-filter-bar" style="margin-bottom: var(--space-5);">
   <div class="search-input-wrapper">
     <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="11" cy="11" r="8"></circle>
@@ -159,7 +117,7 @@
     <input 
       type="text" 
       id="dashboardSearchInput" 
-      placeholder="Filter manuals by title, Doc ID, or machinery model..." 
+      placeholder="Filter manuals by title, Doc ID, or machinery model... (press /)" 
       autocomplete="off"
     >
     <span class="search-shortcut">/</span>
@@ -182,10 +140,10 @@
       <div class="panel-header">
         <div class="panel-title-block">
           <h2 class="panel-title">Recent Manual Ingestions</h2>
-          <span class="panel-caption">Processed maintenance and technical schematics</span>
+          <span class="panel-caption">Processed maintenance manuals and technical documentation</span>
         </div>
         <a href="{{ manual_list_url|default:'/manuals/' }}" class="btn btn-ghost btn-sm">
-          View All Manuals &rarr;
+          View All &rarr;
         </a>
       </div>
 
@@ -300,13 +258,13 @@
     </div>
   </div>
 
-  <!-- Right Column: Operational Activity Stream + Quick Admin Center -->
+  <!-- Right Column: Operational Activity Stream + Quick Admin Shortcuts -->
   <div style="display: flex; flex-direction: column; gap: var(--space-5);">
     <!-- Operational Activity Stream Panel -->
     <div class="panel" id="adminActivityStream">
       <div class="panel-header">
         <div class="panel-title-block">
-          <h2 class="panel-title">System Ingestion Activity</h2>
+          <h2 class="panel-title">System Activity</h2>
           <span class="panel-caption">Audit event timeline</span>
         </div>
       </div>
@@ -349,11 +307,12 @@
       </div>
     </div>
 
-    <!-- Quick Operations Command Panel -->
+    <!-- Quick Operations Shortcuts (Admin Role Aligned) -->
     <div class="panel">
       <div class="panel-header">
         <div class="panel-title-block">
-          <h2 class="panel-title">Operations Shortcuts</h2>
+          <h2 class="panel-title">Admin Shortcuts</h2>
+          <span class="panel-caption">Fleet &amp; manual administration</span>
         </div>
       </div>
       <div class="panel-body" style="padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-2);">
@@ -363,7 +322,7 @@
             <polyline points="17 8 12 3 7 8"></polyline>
             <line x1="12" y1="3" x2="12" y2="15"></line>
           </svg>
-          Upload New PDF Manual
+          Upload PDF Manual
         </a>
         <a href="{{ machine_create_url|default:'/machines/create/' }}" class="btn btn-secondary btn-sm" style="justify-content: flex-start; text-align: left; padding: var(--space-2) var(--space-3); height: auto;">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent); flex-shrink: 0;">
@@ -371,27 +330,91 @@
             <line x1="12" y1="8" x2="12" y2="16"></line>
             <line x1="8" y1="12" x2="16" y2="12"></line>
           </svg>
-          Register Machinery Fleet Unit
+          Register Machine
         </a>
-        <a href="{{ assistant_chat_url|default:'/assistant/chat/' }}" class="btn btn-secondary btn-sm" style="justify-content: flex-start; text-align: left; padding: var(--space-2) var(--space-3); height: auto;">
+        <a href="{{ machine_list_url|default:'/machines/' }}" class="btn btn-secondary btn-sm" style="justify-content: flex-start; text-align: left; padding: var(--space-2) var(--space-3); height: auto;">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent); flex-shrink: 0;">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
           </svg>
-          Open Field Diagnostic Terminal
+          View Equipment Fleet
         </a>
-        <a href="{{ supervisor_history_url|default:'/assistant/supervisor/history/' }}" class="btn btn-secondary btn-sm" style="justify-content: flex-start; text-align: left; padding: var(--space-2) var(--space-3); height: auto;">
+        <a href="{{ product_create_url }}" class="btn btn-secondary btn-sm" style="justify-content: flex-start; text-align: left; padding: var(--space-2) var(--space-3); height: auto;">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent); flex-shrink: 0;">
-            <path d="M2 12h20"></path>
-            <path d="M20 12v8H4v-8"></path>
-            <path d="m4 4 16 0"></path>
-            <path d="M12 4v16"></path>
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="16"></line>
+            <line x1="8" y1="12" x2="16" y2="12"></line>
           </svg>
-          Audit Shift Inquiry Logs
+          Register Supported Product (P-PLATE01)
+        </a>
+        <a href="{{ product_list_url }}" class="btn btn-secondary btn-sm" style="justify-content: flex-start; text-align: left; padding: var(--space-2) var(--space-3); height: auto;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent); flex-shrink: 0;">
+            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+            <line x1="7" y1="7" x2="7.01" y2="7"></line>
+          </svg>
+          Supported Products Catalog
+        </a>
+        <a href="{{ user_list_url }}" class="btn btn-secondary btn-sm" style="justify-content: flex-start; text-align: left; padding: var(--space-2) var(--space-3); height: auto;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent); flex-shrink: 0;">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          User Accounts &amp; Roles
+        </a>
+        <a href="{{ user_create_url }}" class="btn btn-secondary btn-sm" style="justify-content: flex-start; text-align: left; padding: var(--space-2) var(--space-3); height: auto;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent); flex-shrink: 0;">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <line x1="19" y1="8" x2="19" y2="14"></line>
+            <line x1="22" y1="11" x2="16" y2="11"></line>
+          </svg>
+          Create Operator Account
         </a>
       </div>
     </div>
   </div>
 </div>
+
+<!-- Floating Admin Process Toast Notification -->
+<div id="adminProcessToast" role="status" aria-live="polite" style="position: fixed; bottom: var(--space-5); right: var(--space-5); z-index: 1050; max-width: 380px; background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--status-success-text); border-radius: var(--radius-lg); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25); padding: var(--space-4); display: flex; align-items: flex-start; gap: var(--space-3); animation: slideInUp 0.3s ease-out; transition: opacity 0.3s ease, transform 0.3s ease;">
+  <div style="color: var(--status-success-text); flex-shrink: 0; margin-top: 2px;">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+      <polyline points="22 4 12 14.01 9 11.01"></polyline>
+    </svg>
+  </div>
+  <div style="flex: 1;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px;">
+      <span style="font-weight: 700; font-size: var(--fs-sm); color: var(--text-main);">Process Status: Running</span>
+      <button type="button" onclick="dismissProcessToast()" title="Dismiss notification" style="background: none; border: none; color: var(--text-faint); cursor: pointer; padding: 0 4px; font-size: 16px; line-height: 1;">&times;</button>
+    </div>
+    <p style="margin: 0; font-size: var(--fs-xs); color: var(--text-muted); line-height: 1.4;">
+      RAG document vector indexing, equipment knowledge bases, and Vision QA inference pipelines are operating nominally.
+    </p>
+  </div>
+</div>
+
+<style>
+@keyframes slideInUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+</style>
+<script>
+function dismissProcessToast() {
+  const toast = document.getElementById("adminProcessToast");
+  if (toast) {
+    toast.style.opacity = "0";
+    toast.style.transform = "translateY(20px)";
+    setTimeout(function() {
+      if (toast) toast.remove();
+    }, 300);
+  }
+}
+setTimeout(dismissProcessToast, 7000);
+</script>
+
 {% endblock %}
 
 {% block extra_js %}

@@ -108,6 +108,14 @@ def admin_dashboard(request):
             "is_ready": indexed_count > 0,
         })
 
+    try:
+        from inspection.models import Product
+        total_products = Product.objects.count()
+        active_products = Product.objects.filter(is_active=True).count()
+    except Exception:
+        total_products = 0
+        active_products = 0
+
     context = {
         "total_machines": total_machines,
         "active_machines": active_machines,
@@ -117,6 +125,8 @@ def admin_dashboard(request):
         "failed_manuals": failed_manuals,
         "total_pages_sum": total_pages_sum,
         "total_chunks_sum": total_chunks_sum,
+        "total_products": total_products,
+        "active_products": active_products,
         "pipeline_health_pct": pipeline_health_pct,
         "recent_uploads": recent_uploads,
         "recent_activity": recent_activity,

@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}User Management &middot; MMA Industrial{% endblock %}
+
+{% block current_breadcrumb %}User Management{% endblock %}
+
+{% block content %}
+{% url 'user_create' as user_create_url %}
+{% url 'user_list' as user_list_url %}
+
+<!-- Operational Header -->
+<div class="page-header" style="flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-4);">
+  <div class="page-header-title-block">
+    <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;">
+      <h1 class="page-h1">User Management</h1>
+      <span class="badge badge-info" style="font-family: var(--font-mono); font-size: 11px;">
+        Administrator Operations
+      </span>
+      <span class="badge badge-neutral" style="font-family: var(--font-mono); font-size: 11px;">
+        Role Clearance RBAC
+      </span>
+    </div>
+    <p class="page-subtitle">Configure plant accounts, authentication credentials, and operational roles for engineers and supervisors</p>
+  </div>
+
+  <div class="page-actions" style="display: flex; gap: var(--space-2); flex-wrap: wrap;">
+    <a href="{{ user_create_url }}" class="btn btn-primary">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+      Create New User
+    </a>
+  </div>
+</div>
+
+<!-- KPI Metric Strip (Consistent with Dashboards) -->
+<div class="kpi-strip" role="region" aria-label="User Account Metrics" style="margin-bottom: var(--space-5);">
+  <div class="kpi-cell">
+    <span class="kpi-label">Total Accounts</span>
+    <div class="kpi-value-row">
+      <span class="kpi-value num">{{ total_users }}</span>
+    </div>
+    <span class="kpi-subtext positive">{{ active_users }} active operators</span>
+  </div>
+
+  <div class="kpi-cell">
+    <span class="kpi-label">Field Engineers</span>
+    <div class="kpi-value-row">
+      <span class="kpi-value num" style="color: var(--accent);">{{ engineer_count }}</span>
+    </div>
+    <span class="kpi-subtext">AI Diagnosis &amp; Ingestion</span>
+  </div>
+
+  <div class="kpi-cell">
+    <span class="kpi-label">Supervisors</span>
+    <div class="kpi-value-row">
+      <span class="kpi-value num" style="color: var(--status-warning-text);">{{ supervisor_count }}</span>
+    </div>
+    <span class="kpi-subtext">QA Auditing &amp; Sign-Off</span>
+  </div>
+
+  <div class="kpi-cell">
+    <span class="kpi-label">Administrators</span>
+    <div class="kpi-value-row">
+      <span class="kpi-value num" style="color: var(--status-danger-text);">{{ admin_count }}</span>
+    </div>
+    <span class="kpi-subtext">Full Platform Clearance</span>
+  </div>
+</div>
+
+<!-- Search & Filter Bar -->
+<div class="dashboard-filter-bar" style="margin-bottom: var(--space-5); display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center;">
+  <form method="GET" action="{{ user_list_url }}" style="flex: 1; display: flex; gap: var(--space-3); flex-wrap: wrap; align-items: center;">
+    <div class="search-input-wrapper" style="flex: 1; min-width: 240px;">
+      <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input 
+        type="text" 
+        name="q" 
+        value="{{ search_query }}" 
+        placeholder="Search users by username, email, or name..." 
+        autocomplete="off"
+      >
+    </div>
+
+    <!-- Role Filter Select -->
+    <select name="role" class="form-control" style="width: auto; height: 38px; font-size: var(--fs-xs);" onchange="this.form.submit()">
+      <option value="">&mdash; All Roles &mdash;</option>
+      <option value="Engineer" {% if role_filter == "Engineer" %}selected{% endif %}>Engineers</option>
+      <option value="Supervisor" {% if role_filter == "Supervisor" %}selected{% endif %}>Supervisors</option>
+      <option value="Administrator" {% if role_filter == "Administrator" %}selected{% endif %}>Administrators</option>
+    </select>
+
+    <!-- Status Filter Select -->
+    <select name="status" class="form-control" style="width: auto; height: 38px; font-size: var(--fs-xs);" onchange="this.form.submit()">
+      <option value="">&mdash; All Statuses &mdash;</option>
+      <option value="active" {% if status_filter == "active" %}selected{% endif %}>Active Only</option>
+      <option value="inactive" {% if status_filter == "inactive" %}selected{% endif %}>Inactive Only</option>
+    </select>
+
+    <button type="submit" class="btn btn-secondary btn-sm" style="height: 38px;">Filter</button>
+    {% if search_query or role_filter or status_filter %}
+      <a href="{{ user_list_url }}" class="btn btn-ghost btn-sm" style="height: 38px;">Reset</a>
+    {% endif %}
+  </form>
+</div>
+
+<!-- Users Table Panel -->
+<div class="panel" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-subtle); overflow: hidden;">
+  <div class="panel-header" style="padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+    <div class="panel-title-block">
+      <h2 class="panel-title" style="font-size: var(--fs-md); font-weight: 600; color: var(--text-main); margin: 0;">System Operators &amp; Accounts</h2>
+      <span class="panel-caption" style="font-size: var(--fs-xs); color: var(--text-faint);">Showing {{ user_rows|length }} registered account(s)</span>
+    </div>
+  </div>
+
+  <div class="panel-body" style="padding: 0;">
+    <div class="table-responsive">
+      <table class="table" style="margin: 0; width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="background: var(--ground); border-bottom: 1px solid var(--border);">
+            <th style="padding: var(--space-3) var(--space-4); font-size: var(--fs-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Operator</th>
+            <th style="padding: var(--space-3) var(--space-4); font-size: var(--fs-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Role Clearance</th>
+            <th style="padding: var(--space-3) var(--space-4); font-size: var(--fs-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Email Address</th>
+            <th style="padding: var(--space-3) var(--space-4); font-size: var(--fs-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Status</th>
+            <th style="padding: var(--space-3) var(--space-4); font-size: var(--fs-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Last Login</th>
+            <th style="padding: var(--space-3) var(--space-4); font-size: var(--fs-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Created</th>
+            <th style="padding: var(--space-3) var(--space-4); font-size: var(--fs-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; text-align: right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in user_rows %}
+            <tr style="border-bottom: 1px solid var(--border-subtle); transition: background 0.15s ease;">
+              <!-- Operator Name & Username -->
+              <td style="padding: var(--space-3) var(--space-4);">
+                <div style="display: flex; align-items: center; gap: var(--space-3);">
+                  <div style="width: 34px; height: 34px; border-radius: 50%; background: var(--ground); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-weight: 700; font-size: 13px; color: var(--accent);">
+                    {{ row.user.username|slice:":2"|upper }}
+                  </div>
+                  <div>
+                    <div style="font-weight: 600; font-size: var(--fs-sm); color: var(--text-main); display: flex; align-items: center; gap: 6px;">
+                      <span>{{ row.user.username }}</span>
+                      {% if row.is_self %}
+                        <span class="badge badge-neutral" style="font-size: 10px; padding: 1px 6px;">You</span>
+                      {% endif %}
+                    </div>
+                    {% if row.user.first_name or row.user.last_name %}
+                      <div style="font-size: 11px; color: var(--text-faint);">
+                        {{ row.user.first_name }} {{ row.user.last_name }}
+                      </div>
+                    {% endif %}
+                  </div>
+                </div>
+              </td>
+
+              <!-- Role Clearance Badge -->
+              <td style="padding: var(--space-3) var(--space-4);">
+                {% if row.role == "Administrator" %}
+                  <span class="badge badge-danger" style="font-weight: 600; font-size: 11px;">
+                    <span class="badge-dot"></span> Administrator
+                  </span>
+                {% elif row.role == "Supervisor" %}
+                  <span class="badge badge-warning" style="font-weight: 600; font-size: 11px;">
+                    <span class="badge-dot"></span> Supervisor
+                  </span>
+                {% elif row.role == "Engineer" %}
+                  <span class="badge badge-info" style="font-weight: 600; font-size: 11px;">
+                    <span class="badge-dot"></span> Engineer
+                  </span>
+                {% else %}
+                  <span class="badge badge-neutral" style="font-size: 11px;">
+                    Operator
+                  </span>
+                {% endif %}
+              </td>
+
+              <!-- Email -->
+              <td style="padding: var(--space-3) var(--space-4); font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-muted);">
+                {{ row.user.email|default:"&mdash;" }}
+              </td>
+
+              <!-- Active Status -->
+              <td style="padding: var(--space-3) var(--space-4);">
+                {% if row.user.is_active %}
+                  <span class="badge badge-success" style="font-size: 11px;">Active</span>
+                {% else %}
+                  <span class="badge badge-neutral" style="font-size: 11px; color: var(--text-disabled);">Disabled</span>
+                {% endif %}
+              </td>
+
+              <!-- Last Login -->
+              <td style="padding: var(--space-3) var(--space-4); font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-muted);">
+                {% if row.user.last_login %}
+                  <div>{{ row.user.last_login|date:"Y-m-d" }}</div>
+                  <div style="color: var(--text-faint);">{{ row.user.last_login|date:"H:i" }}</div>
+                {% else %}
+                  <span style="color: var(--text-disabled);">&mdash; Never &mdash;</span>
+                {% endif %}
+              </td>
+
+              <!-- Created -->
+              <td style="padding: var(--space-3) var(--space-4); font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-muted);">
+                {{ row.user.date_joined|date:"Y-m-d" }}
+              </td>
+
+              <!-- Actions -->
+              <td style="padding: var(--space-3) var(--space-4); text-align: right;">
+                <div style="display: flex; gap: var(--space-2); justify-content: flex-end; align-items: center;">
+                  <a href="{% url 'user_edit' row.user.id %}" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 4px;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                    <span>Edit</span>
+                  </a>
+
+                  {% if not row.is_self %}
+                    <form method="POST" action="{% url 'user_toggle' row.user.id %}" style="display: inline;" onsubmit="return confirm('Are you sure you want to {% if row.user.is_active %}deactivate{% else %}activate{% endif %} account \'{{ row.user.username }}\'?');">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-ghost btn-sm" style="font-size: 11px; color: {% if row.user.is_active %}var(--status-danger-text){% else %}var(--status-success-text){% endif %};">
+                        {% if row.user.is_active %}Disable{% else %}Enable{% endif %}
+                      </button>
+                    </form>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="7" style="text-align: center; padding: var(--space-8); color: var(--text-faint);">
+                No user accounts match the current filter.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+

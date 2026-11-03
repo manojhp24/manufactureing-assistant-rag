@@ -1,23 +1,23 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Supervisor Audit Dashboard &middot; MMA Industrial{% endblock %}
+{% block title %}Supervisor Dashboard &middot; MMA Industrial{% endblock %}
 
-{% block current_breadcrumb %}Supervisor Audit Console{% endblock %}
+{% block current_breadcrumb %}Supervisor Dashboard{% endblock %}
 
 {% block content %}
 {% url 'supervisor_history' as supervisor_history_url %}
 
-<div class="page-header" style="flex-wrap: wrap; gap: var(--space-3);">
+<div class="page-header" style="flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-4);">
   <div class="page-header-title-block">
     <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;">
-      <h1 class="page-h1">Plant Supervision &amp; Audit Dashboard</h1>
+      <h1 class="page-h1">Supervisor Dashboard</h1>
       <div class="telemetry-pulse" title="Plant-wide audit oversight telemetry">
         <span class="pulse-indicator"></span>
         <span id="telemetrySyncTime">Audit Stream Live</span>
       </div>
     </div>
-    <p class="page-subtitle">Plant-wide maintenance inquiry oversight, knowledge coverage auditing, and machine query distribution</p>
+    <p class="page-subtitle">Plant-wide maintenance inquiry audit, knowledge coverage, and equipment query distribution</p>
   </div>
   <div class="page-actions" style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap;">
     <button type="button" class="btn-refresh" id="syncTelemetryBtn" title="Sync latest dashboard telemetry via partial fetch">
@@ -26,6 +26,15 @@
       </svg>
       Sync
     </button>
+    <a href="{% url 'inspection:inspection_history' %}" class="btn btn-primary">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+        <polyline points="14 2 14 8 20 8"></polyline>
+        <line x1="16" y1="13" x2="8" y2="13"></line>
+        <line x1="16" y1="17" x2="8" y2="17"></line>
+      </svg>
+      Quality Audit Log
+    </a>
     <a href="{{ supervisor_history_url|default:'/assistant/supervisor/history/' }}" class="btn btn-secondary">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M2 12h20"></path>
@@ -33,7 +42,7 @@
         <path d="m4 4 16 0"></path>
         <path d="M12 4v16"></path>
       </svg>
-      View All Question Logs
+      Question Logs
     </a>
   </div>
 </div>

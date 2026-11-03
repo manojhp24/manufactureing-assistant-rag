@@ -1,0 +1,372 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+  {% if is_edit %}Edit Operator &middot; {{ target_user.username }}{% else %}Create New User &middot; MMA Industrial{% endif %}
+{% endblock %}
+
+{% block current_breadcrumb %}
+  {% if is_edit %}Edit User: {{ target_user.username }}{% else %}Create User{% endif %}
+{% endblock %}
+
+{% block content %}
+{% url 'user_list' as user_list_url %}
+
+<!-- Operational Header -->
+<div class="page-header" style="flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-4);">
+  <div class="page-header-title-block">
+    <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;">
+      <h1 class="page-h1">
+        {% if is_edit %}Modify Operator Account{% else %}Provision New User Account{% endif %}
+      </h1>
+      {% if is_edit %}
+        <span class="badge badge-info" style="font-family: var(--font-mono); font-size: 11px;">
+          UID: {{ target_user.id }} &bull; @{{ target_user.username }}
+        </span>
+      {% else %}
+        <span class="badge badge-neutral" style="font-family: var(--font-mono); font-size: 11px;">
+          RBAC Provisioning
+        </span>
+      {% endif %}
+    </div>
+    <p class="page-subtitle">
+      {% if is_edit %}
+        Update operational permissions, user details, or reset credentials for this operator
+      {% else %}
+        Register an operator account and assign system clearance: Engineer, Supervisor, or Administrator
+      {% endif %}
+    </p>
+  </div>
+
+  <div class="page-actions">
+    <a href="{{ user_list_url }}" class="btn btn-secondary">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12 19 5 12 12 5"></polyline>
+      </svg>
+      User Directory
+    </a>
+  </div>
+</div>
+
+<!-- Two-Column Operational Layout: Form + Role Clearance Guide -->
+<div style="display: grid; grid-template-columns: 1.6fr 1fr; gap: var(--space-6);" class="user-form-layout">
+  <!-- Left Column: Form Panel -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title-block">
+        <h2 class="panel-title">
+          {% if is_edit %}Account Configuration{% else %}Operator Credentials &amp; Profile{% endif %}
+        </h2>
+        <span class="panel-caption">Role-based access credentials for plant floor stations</span>
+      </div>
+    </div>
+
+    <form method="post" action="" novalidate id="userForm">
+      {% csrf_token %}
+
+      <div class="panel-body" style="padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-4);">
+        {% if form.non_field_errors %}
+          <div class="alert alert-error">
+            <svg class="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <div class="alert-content">
+              {% for error in form.non_field_errors %}{{ error }}<br>{% endfor %}
+            </div>
+          </div>
+        {% endif %}
+
+        {% if is_edit %}
+          <!-- Read-only Username in Edit Mode -->
+          <div class="form-group">
+            <label class="form-label" style="font-weight: 600;">System Username</label>
+            <div style="display: flex; align-items: center; gap: var(--space-2);">
+              <input type="text" class="form-control" value="{{ target_user.username }}" disabled style="background: var(--surface); color: var(--text-muted); cursor: not-allowed; max-width: 320px;">
+              <span class="badge badge-neutral" style="font-size: 10px; font-family: var(--font-mono);">Immutable Identity</span>
+            </div>
+            <span class="form-help">Usernames are permanent system identifiers linked to inspection audit logs.</span>
+          </div>
+        {% else %}
+          <!-- Username Input in Create Mode -->
+          <div class="form-group">
+            <label for="id_username" class="form-label" style="font-weight: 600;">
+              Username <span style="color: var(--status-danger-text);">*</span>
+            </label>
+            {{ form.username }}
+            <span class="form-help">Unique handle for login (e.g. <code>arun_eng</code>, <code>priya_qa</code>). Letters, digits, and @/./+/-/_ only.</span>
+            {% if form.username.errors %}
+              <div class="form-error-msg" style="color: var(--status-danger-text); font-size: 11px; margin-top: 3px;">
+                {% for error in form.username.errors %}{{ error }}{% endfor %}
+              </div>
+            {% endif %}
+          </div>
+        {% endif %}
+
+        <!-- Name Inputs (First & Last) -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3);">
+          <div class="form-group">
+            <label for="id_first_name" class="form-label" style="font-weight: 600;">First Name</label>
+            {{ form.first_name }}
+            {% if form.first_name.errors %}
+              <div class="form-error-msg" style="color: var(--status-danger-text); font-size: 11px; margin-top: 3px;">
+                {% for error in form.first_name.errors %}{{ error }}{% endfor %}
+              </div>
+            {% endif %}
+          </div>
+          <div class="form-group">
+            <label for="id_last_name" class="form-label" style="font-weight: 600;">Last Name</label>
+            {{ form.last_name }}
+            {% if form.last_name.errors %}
+              <div class="form-error-msg" style="color: var(--status-danger-text); font-size: 11px; margin-top: 3px;">
+                {% for error in form.last_name.errors %}{{ error }}{% endfor %}
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Email Address -->
+        <div class="form-group">
+          <label for="id_email" class="form-label" style="font-weight: 600;">Email Address</label>
+          {{ form.email }}
+          <span class="form-help">Used for system notices and identification.</span>
+          {% if form.email.errors %}
+            <div class="form-error-msg" style="color: var(--status-danger-text); font-size: 11px; margin-top: 3px;">
+              {% for error in form.email.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Operational Role Clearance Selection -->
+        <div class="form-group" style="padding-top: var(--space-2);">
+          <label class="form-label" style="font-weight: 700; display: flex; align-items: center; justify-content: space-between;">
+            <span>Operational Role Assignment <span style="color: var(--status-danger-text);">*</span></span>
+            <span class="badge badge-info" style="font-size: 10px; font-family: var(--font-mono);">RBAC Group</span>
+          </label>
+          <span class="form-help" style="margin-bottom: var(--space-3); display: block;">
+            The selected role determines sidebar navigation, dashboard telemetry, and system execution privileges.
+          </span>
+
+          <div style="display: flex; flex-direction: column; gap: var(--space-2);">
+            {% for choice_val, choice_label in form.role.field.choices %}
+              <label class="role-selection-card" style="display: flex; align-items: flex-start; gap: var(--space-3); padding: var(--space-3) var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); cursor: pointer; transition: border-color 0.15s ease, background 0.15s ease;">
+                <input 
+                  type="radio" 
+                  name="role" 
+                  value="{{ choice_val }}" 
+                  {% if form.role.value == choice_val or form.initial.role == choice_val %}checked{% endif %}
+                  style="margin-top: 3px; accent-color: var(--accent); cursor: pointer;"
+                >
+                <div style="flex: 1;">
+                  <div style="display: flex; align-items: center; gap: var(--space-2); margin-bottom: 2px;">
+                    <strong style="font-size: var(--fs-sm); color: var(--text-main);">{{ choice_val }}</strong>
+                    {% if choice_val == 'Administrator' %}
+                      <span class="badge badge-neutral" style="font-size: 10px; color: var(--status-danger-text); border-color: rgba(239, 68, 68, 0.3);">Platform Admin</span>
+                    {% elif choice_val == 'Supervisor' %}
+                      <span class="badge badge-neutral" style="font-size: 10px; color: var(--status-warning-text); border-color: rgba(245, 158, 11, 0.3);">QA Sign-Off</span>
+                    {% elif choice_val == 'Engineer' %}
+                      <span class="badge badge-neutral" style="font-size: 10px; color: var(--accent); border-color: rgba(37, 99, 235, 0.3);">Field Ops</span>
+                    {% endif %}
+                  </div>
+                  <div style="font-size: var(--fs-xs); color: var(--text-muted); line-height: 1.35;">
+                    {% if choice_val == 'Engineer' %}
+                      Access to RAG Assistant diagnostics, Single &amp; Batch visual defect inspections, and personal query history.
+                    {% elif choice_val == 'Supervisor' %}
+                      Access to Quality Audit log, human-in-the-loop prediction confirmation &amp; corrections, model benchmarks, and question audit logs.
+                    {% elif choice_val == 'Administrator' %}
+                      Full system clearance: Fleet equipment registry, PDF manual ingestion &amp; chunk indexing, product catalog (P-PLATE01), and operator provisioning.
+                    {% endif %}
+                  </div>
+                </div>
+              </label>
+            {% endfor %}
+          </div>
+          {% if form.role.errors %}
+            <div class="form-error-msg" style="color: var(--status-danger-text); font-size: 11px; margin-top: 3px;">
+              {% for error in form.role.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Passwords / Credentials Section -->
+        {% if not is_edit %}
+          <!-- Create Mode: Password & Confirm Password -->
+          <div style="border-top: 1px solid var(--border-subtle); padding-top: var(--space-4); margin-top: var(--space-2);">
+            <h3 style="font-size: var(--fs-sm); font-weight: 700; color: var(--text-main); margin-bottom: var(--space-3);">
+              Station Authentication Credentials
+            </h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3);">
+              <div class="form-group">
+                <label for="id_password" class="form-label" style="font-weight: 600;">
+                  Initial Password <span style="color: var(--status-danger-text);">*</span>
+                </label>
+                {{ form.password }}
+                <span class="form-help">Minimum 8 characters.</span>
+                {% if form.password.errors %}
+                  <div class="form-error-msg" style="color: var(--status-danger-text); font-size: 11px; margin-top: 3px;">
+                    {% for error in form.password.errors %}{{ error }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+              <div class="form-group">
+                <label for="id_confirm_password" class="form-label" style="font-weight: 600;">
+                  Confirm Password <span style="color: var(--status-danger-text);">*</span>
+                </label>
+                {{ form.confirm_password }}
+                <span class="form-help">Must match initial password.</span>
+                {% if form.confirm_password.errors %}
+                  <div class="form-error-msg" style="color: var(--status-danger-text); font-size: 11px; margin-top: 3px;">
+                    {% for error in form.confirm_password.errors %}{{ error }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        {% else %}
+          <!-- Edit Mode: Optional Password Reset -->
+          <div style="border-top: 1px solid var(--border-subtle); padding-top: var(--space-4); margin-top: var(--space-2);">
+            <h3 style="font-size: var(--fs-sm); font-weight: 700; color: var(--text-main); margin-bottom: var(--space-2);">
+              Reset Authentication Password
+            </h3>
+            <p style="font-size: var(--fs-xs); color: var(--text-muted); margin-bottom: var(--space-3);">
+              Leave this field blank to keep the operator's current password unchanged.
+            </p>
+            <div class="form-group" style="max-width: 380px;">
+              <label for="id_new_password" class="form-label" style="font-weight: 600;">New Password (Optional)</label>
+              {{ form.new_password }}
+              <span class="form-help">Provide at least 8 characters to override current password.</span>
+              {% if form.new_password.errors %}
+                <div class="form-error-msg" style="color: var(--status-danger-text); font-size: 11px; margin-top: 3px;">
+                  {% for error in form.new_password.errors %}{{ error }}{% endfor %}
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
+
+        <!-- Account Active Toggle -->
+        <div style="border-top: 1px solid var(--border-subtle); padding-top: var(--space-4); margin-top: var(--space-2);">
+          <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);">
+            <div>
+              <label for="id_is_active" style="font-weight: 600; font-size: var(--fs-sm); color: var(--text-main); cursor: pointer; display: block;">
+                Active Account Status
+              </label>
+              <span style="font-size: var(--fs-xs); color: var(--text-muted); display: block; margin-top: 2px;">
+                When active, operator can authenticate at shopfloor terminals. Deactivating immediately blocks login while keeping all historical inspection records intact.
+              </span>
+              {% if is_self %}
+                <span class="badge badge-warning" style="margin-top: 6px; font-size: 10px;">
+                  Safety Lock: You cannot deactivate your currently logged-in account
+                </span>
+              {% endif %}
+            </div>
+            <div>
+              {{ form.is_active }}
+            </div>
+          </div>
+          {% if form.is_active.errors %}
+            <div class="form-error-msg" style="color: var(--status-danger-text); font-size: 11px; margin-top: 3px;">
+              {% for error in form.is_active.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Footer Buttons -->
+      <div class="panel-footer" style="padding: var(--space-4) var(--space-5); display: flex; align-items: center; justify-content: flex-end; gap: var(--space-3); border-top: 1px solid var(--border);">
+        <a href="{{ user_list_url }}" class="btn btn-secondary">
+          Cancel
+        </a>
+        <button type="submit" class="btn btn-primary" id="saveUserBtn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+            <line x1="7" y1="3" x2="7" y2="8"></line>
+            <line x1="15" y1="3" x2="15" y2="8"></line>
+          </svg>
+          {% if is_edit %}Save Account Changes{% else %}Register Operator Account{% endif %}
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Right Column: RBAC Permission Guide & Safety Notes -->
+  <div style="display: flex; flex-direction: column; gap: var(--space-4);">
+    <!-- Role Permissions Matrix Card -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title-block">
+          <h2 class="panel-title">Role Clearance Matrix</h2>
+          <span class="panel-caption">Enforced system capabilities</span>
+        </div>
+      </div>
+      <div class="panel-body" style="padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-4);">
+        <!-- Engineer Details -->
+        <div style="padding-bottom: var(--space-3); border-bottom: 1px solid var(--border-subtle);">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+            <strong style="font-size: var(--fs-sm); color: var(--accent);">Field Engineer</strong>
+            <span class="badge badge-neutral" style="font-size: 10px;">Primary Station User</span>
+          </div>
+          <ul style="margin: 0; padding-left: 18px; font-size: var(--fs-xs); color: var(--text-muted); line-height: 1.5;">
+            <li>Query RAG knowledge base for machine diagnostics</li>
+            <li>Run Single Image visual quality inspections</li>
+            <li>Upload Batch Inspection packages (queued &bull; processing)</li>
+            <li>Access personal query history</li>
+          </ul>
+        </div>
+
+        <!-- Supervisor Details -->
+        <div style="padding-bottom: var(--space-3); border-bottom: 1px solid var(--border-subtle);">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+            <strong style="font-size: var(--fs-sm); color: var(--status-warning-text);">Shift Supervisor</strong>
+            <span class="badge badge-neutral" style="font-size: 10px;">Audit &amp; Oversight</span>
+          </div>
+          <ul style="margin: 0; padding-left: 18px; font-size: var(--fs-xs); color: var(--text-muted); line-height: 1.5;">
+            <li>Full Quality Audit Log with filter controls</li>
+            <li>Confirm or correct predictions with verification comments</li>
+            <li>Inspect Confusion Matrix &amp; Model Benchmark metrics</li>
+            <li>Audit engineer diagnostic query logs</li>
+          </ul>
+        </div>
+
+        <!-- Administrator Details -->
+        <div>
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+            <strong style="font-size: var(--fs-sm); color: var(--status-danger-text);">System Administrator</strong>
+            <span class="badge badge-neutral" style="font-size: 10px;">Fleet &amp; Platform Admin</span>
+          </div>
+          <ul style="margin: 0; padding-left: 18px; font-size: var(--fs-xs); color: var(--text-muted); line-height: 1.5;">
+            <li>Equipment registry (add/edit machines)</li>
+            <li>Manual PDF upload and vector chunk indexing</li>
+            <li>Supported plate products catalog (e.g. P-PLATE01)</li>
+            <li>Operator account provisioning &amp; role assignment</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Security & Isolation Information -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title-block">
+          <h2 class="panel-title">Operational Guidelines</h2>
+          <span class="panel-caption">Audit trail &amp; credentials</span>
+        </div>
+      </div>
+      <div class="panel-body" style="padding: var(--space-4); font-size: var(--fs-xs); color: var(--text-muted); line-height: 1.55; display: flex; flex-direction: column; gap: var(--space-3);">
+        <div>
+          <strong style="color: var(--text-main);">Auditing Continuity:</strong>
+          Never delete user records. If an operator leaves the shift or department, deactivate the account. This preserves all previous inspection stamps and QA review histories.
+        </div>
+        <div>
+          <strong style="color: var(--text-main);">Instant Role Switching:</strong>
+          Changing an operator's role updates their Django group membership immediately, adjusting their dashboard navigation on their next HTTP request.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

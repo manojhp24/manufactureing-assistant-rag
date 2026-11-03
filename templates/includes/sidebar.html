@@ -13,6 +13,8 @@ Roles supported: Administrator, Engineer, Supervisor
 {% url 'assistant_history' as assistant_history_url %}
 {% url 'supervisor_dashboard' as supervisor_dash_url %}
 {% url 'supervisor_history' as supervisor_history_url %}
+{% url 'user_list' as user_list_url %}
+{% url 'user_create' as user_create_url %}
 
 <aside class="app-sidebar" id="appSidebar" aria-label="Main Navigation">
   <div class="sidebar-header">
@@ -103,6 +105,34 @@ Roles supported: Administrator, Engineer, Supervisor
           </ul>
         </div>
 
+        <div class="nav-group">
+          <div class="nav-group-title">User Management</div>
+          <ul class="sidebar-nav-list">
+            <li class="sidebar-nav-item">
+              <a href="{{ user_list_url|default:'/accounts/users/' }}" class="sidebar-nav-link {% if current_url == 'user_list' or current_url == 'user_edit' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                <span>User Directory</span>
+              </a>
+            </li>
+            <li class="sidebar-nav-item">
+              <a href="{{ user_create_url|default:'/accounts/users/create/' }}" class="sidebar-nav-link {% if current_url == 'user_create' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <line x1="19" y1="8" x2="19" y2="14"></line>
+                  <line x1="22" y1="11" x2="16" y2="11"></line>
+                </svg>
+                <span>Create User</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+
       {# Supervisor Role #}
       {% elif user_role == "supervisor" or "Supervisor" in user.groups.all|stringformat:"s" %}
         <div class="nav-group">
@@ -115,7 +145,7 @@ Roles supported: Administrator, Engineer, Supervisor
                   <line x1="12" y1="20" x2="12" y2="4"></line>
                   <line x1="6" y1="20" x2="6" y2="14"></line>
                 </svg>
-                <span>Supervisor Metrics</span>
+                <span>Supervisor Dashboard</span>
               </a>
             </li>
             <li class="sidebar-nav-item">

@@ -1,6 +1,6 @@
 from django.urls import path
 from django.views.generic import RedirectView
-from .views import CustomLoginView, logout_view
+from . import views
 
 urlpatterns = [
     path(
@@ -10,12 +10,34 @@ urlpatterns = [
     ),
     path(
         "login/",
-        CustomLoginView.as_view(),
+        views.CustomLoginView.as_view(),
         name="login",
     ),
     path(
         "logout/",
-        logout_view,
+        views.logout_view,
         name="logout",
+    ),
+
+    # Administrator User Management Operations (Admin Only)
+    path(
+        "users/",
+        views.user_list,
+        name="user_list",
+    ),
+    path(
+        "users/create/",
+        views.user_create,
+        name="user_create",
+    ),
+    path(
+        "users/<int:user_id>/edit/",
+        views.user_edit,
+        name="user_edit",
+    ),
+    path(
+        "users/<int:user_id>/toggle/",
+        views.user_toggle_status,
+        name="user_toggle",
     ),
 ]

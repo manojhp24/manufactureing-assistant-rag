@@ -1,18 +1,18 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Engineer Field Console &middot; MMA Industrial{% endblock %}
+{% block title %}Engineer Dashboard &middot; MMA Industrial{% endblock %}
 
-{% block current_breadcrumb %}Field Operations{% endblock %}
+{% block current_breadcrumb %}Engineer Dashboard{% endblock %}
 
 {% block content %}
 {% url 'assistant_chat' as assistant_chat_url %}
 {% url 'assistant_history' as assistant_history_url %}
 
-<div class="page-header" style="flex-wrap: wrap; gap: var(--space-3);">
+<div class="page-header" style="flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-4);">
   <div class="page-header-title-block">
     <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;">
-      <h1 class="page-h1">Maintenance Engineering Terminal</h1>
+      <h1 class="page-h1">Engineer Dashboard</h1>
       <div class="telemetry-pulse" title="Field terminal operational telemetry">
         <span class="pulse-indicator"></span>
         <span id="telemetrySyncTime">Fleet Synced</span>
@@ -27,6 +27,13 @@
       </svg>
       Sync
     </button>
+    <a href="{% url 'inspection:upload_inspection' %}" class="btn btn-secondary">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+        <circle cx="12" cy="13" r="4"></circle>
+      </svg>
+      Visual Inspection
+    </a>
     <a href="{{ assistant_chat_url|default:'/assistant/chat/' }}" class="btn btn-primary">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
